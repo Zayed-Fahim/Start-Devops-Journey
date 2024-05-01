@@ -1,0 +1,11 @@
+FROM node:13-alpine
+
+RUN mkdir -p /usr/app
+
+COPY package*.js yarn.lock /usr/app/
+COPY app/* /usr/app/
+
+WORKDIR /usr/app/
+
+RUN yarn
+CMD [ "nodemon", "server.js"]

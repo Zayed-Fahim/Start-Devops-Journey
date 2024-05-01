@@ -1,8 +1,17 @@
 {
-  "dependencies": {
-    "express": "^4.19.2"
-  },
+  "name": "start-devops-journey",
+  "version": "1.0.0",
+  "description": "I started learning Devops Engineering. Motivate to learn Devops because of high paying salary.",
+  "main": "server.js",
   "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon server.js"
+  },
+  "keywords": [],
+  "author": "Zayed Fahim",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
   }
 }
