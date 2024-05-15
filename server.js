@@ -1,6 +1,8 @@
 const express = require("express");
 const User = require("./Model/User");
 const connect = require("./connect");
+const mongoose = require("mongoose");
+const { ObjectId } = mongoose.Types;
 const app = express();
 const port = 3000;
 
@@ -13,15 +15,23 @@ app.get("/", (req, res) => {
 
 app.get("/users", async (req, res, next) => {
   try {
+    const { userid } = req.query;
     let query = {};
-    if (req.query.userid) query = { ...query, _id: req.query.userid };
+    if (userid) query = { ...query, _id: userid };
+
+    if (userid && !ObjectId.isValid(userid)) {
+      return res.status(400).json({
+        success: false,
+        messssage: "Not a valid mongodb objectid!",
+      });
+    }
 
     const result = await User.find(query);
     if (result.length === 0)
       return res.status(200).json({
         success: true,
         messssage: null,
-        data: "No users data available!",
+        data: "No data available!",
       });
     res.status(200).json({ success: true, messssage: null, data: result });
   } catch (error) {
