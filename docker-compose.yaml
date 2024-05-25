@@ -1,5 +1,9 @@
 version: "3"
 services:
+  devops:
+    image: zayed69/devops-learning:1.0
+    ports:
+      - 3000:3000
   mongodb:
     image: "mongo"
     ports:
