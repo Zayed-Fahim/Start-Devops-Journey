@@ -26,7 +26,7 @@ app.get("/users", async (req, res, next) => {
       });
     }
 
-    const result = await User.find(query);
+    const result = await User.findOne(query);
     if (result.length === 0) {
       return res.status(200).json({
         success: true,
