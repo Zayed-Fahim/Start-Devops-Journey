@@ -1,0 +1,23 @@
+ARG NODE_VERSION=22-alpine
+FROM node:${NODE_VERSION} AS development
+
+# Set up Corepack
+USER root
+RUN corepack enable && \
+    corepack prepare yarn@stable --activate && \
+    chown -R node:node /usr/local/bin
+
+# Create workspace
+RUN mkdir -p /usr/app && chown node:node /usr/app
+WORKDIR /usr/app
+USER node
+
+# Install dependencies
+COPY --chown=node:node package.json yarn.lock ./
+RUN yarn install --frozen-lockfile --prefer-offline
+
+# Copy app files
+COPY --chown=node:node . .
+
+EXPOSE 3000
+CMD ["yarn", "dev"]

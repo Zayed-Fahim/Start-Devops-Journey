@@ -1,0 +1,22 @@
+# Default ignores
+node_modules
+npm-debug.log
+yarn-error.log
+.DS_Store
+.git
+.gitignore
+
+# Environment files
+.env
+.env.local
+.env*.local
+
+# Build files
+dist
+build
+coverage
+
+# Editor directories
+.idea
+.vscode
+*.swp

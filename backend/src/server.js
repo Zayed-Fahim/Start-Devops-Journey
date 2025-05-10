@@ -1,16 +1,20 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const { ObjectId } = mongoose.Types;
 const connect = require("./connect");
 const User = require("./models/User");
+const { ObjectId } = mongoose.Types;
 
 const app = express();
-const port = 3000;
+const port = 3001;
 
 app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("Start learning DevOps!");
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
 });
 
 app.get("/users", async (req, res, next) => {
