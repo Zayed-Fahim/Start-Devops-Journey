@@ -31,15 +31,12 @@ WORKDIR /usr/app
 USER app
 
 # Copy production artifacts
+COPY --chown=app:app --from=builder /usr/app/.next ./.next
+COPY --chown=app:app --from=builder /usr/app/public ./public
 COPY --chown=app:app --from=builder /usr/app/node_modules ./node_modules
-COPY --chown=app:app --from=builder /usr/app/dist ./dist
 COPY --chown=app:app --from=builder /usr/app/package.json ./
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost:3001/health || exit 1
-
+EXPOSE 3000
 ENV NODE_ENV=production
-EXPOSE 3001
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["node", "dist/main.js"]
+CMD ["yarn", "start"]

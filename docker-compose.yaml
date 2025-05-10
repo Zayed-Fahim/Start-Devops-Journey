@@ -1,29 +1,95 @@
-version: "3"
 services:
-  devops:
-    image: zayed69/devops-learning:1.0
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ${BACKEND_DOCKERFILE}
+      args:
+        NODE_VERSION: ${NODE_VERSION}
+    env_file:
+      - ${BACKEND_ENV_FILE}
     ports:
-      - 3000:3000
-  mongodb:
-    image: "mongo"
-    ports:
-      - 27017:27017
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=pass
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
     volumes:
-      - mongo-data:/data/db
+      - ./backend:/usr/app
+      - /usr/app/node_modules
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ${FRONTEND_DOCKERFILE}
+      args:
+        NODE_VERSION: ${NODE_VERSION}
+    env_file:
+      - ${FRONTEND_ENV_FILE}
+    volumes:
+      - ./frontend:/usr/app
+      - /usr/app/node_modules
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    ports:
+      - "${MONGO_DB_PORT}:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    networks:
+      - app-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   mongo-express:
     image: mongo-express
+    container_name: mongo-express
     restart: always
     ports:
-      - 8081:8081
+      - "${MONGO_EXPRESS_PORT}:8081"
     environment:
-      - ME_CONFIG_MONGODB_SERVER=mongodb
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=pass
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      ME_CONFIG_BASICAUTH_USERNAME: ${ME_CONFIG_BASICAUTH_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${ME_CONFIG_BASICAUTH_PASSWORD}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - app-network
 
 volumes:
-  mongo-data:
-    driver: local
+  mongo_data:
+
+networks:
+  app-network:
+    driver: bridge
