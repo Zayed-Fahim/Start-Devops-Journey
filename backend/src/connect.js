@@ -1,21 +1,14 @@
 const mongoose = require("mongoose");
-const path = require("path");
+require("dotenv").config();
 
-process.env.NODE_ENV = process.env.NODE_ENV || "development";
-
-require("dotenv").config({
-  path: path.resolve(
-    __dirname,
-    process.env.NODE_ENV === "development" ? "../.env.dev" : "../.env.prod"
-  ),
-});
+const DB_URI = `mongodb://${process.env.MONGO_DB_USERNAME}:${process.env.MONGO_DB_PASSWORD}@${process.env.MONGO_DB_HOST}:${process.env.MONGO_DB_PORT}/?authSource=admin`;
 
 const connect = async () => {
   try {
     await mongoose
-      .connect(
-        `mongodb://${process.env.MONGO_DB_USERNAME}:${process.env.MONGO_DB_PASSWORD}@${process.env.MONGO_DB_HOST}:${process.env.MONGO_DB_PORT}`
-      )
+      .connect(DB_URI, {
+        dbName: "devops",
+      })
       .then(() => {
         console.log("Successfully Established connection");
       });

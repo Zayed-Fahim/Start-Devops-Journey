@@ -2,19 +2,18 @@ const express = require("express");
 const mongoose = require("mongoose");
 const connect = require("./connect");
 const User = require("./models/User");
+const cors = require("cors");
 const { ObjectId } = mongoose.Types;
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 
 app.get("/", (req, res) => {
   res.send("Start learning DevOps!");
-});
-
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok" });
 });
 
 app.get("/users", async (req, res, next) => {
