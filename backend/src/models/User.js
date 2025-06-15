@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const userSchema = mongoose.Schema(
   {
-    name: {
+    fullname: {
       type: String,
       required: true,
       trim: true,
@@ -10,20 +10,34 @@ const userSchema = mongoose.Schema(
     email: {
       type: String,
       required: true,
+      trim: true,
+      unique: true,
+      lowercase: true,
     },
-    password: {
+    companyname: {
       type: String,
       required: true,
+      trim: true,
     },
-    role: {
+    position: {
       type: String,
       required: true,
-      enum: ["Admin", "Developer", "User"],
+      trim: true,
     },
-    status: {
+    phone: {
       type: String,
       required: true,
-      enum: ["Active", "Inactive"],
+      trim: true,
+    },
+    hobby: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    avatar: {
+      type: String,
+      required: true,
+      trim: true,
     },
   },
   { timestamps: true }

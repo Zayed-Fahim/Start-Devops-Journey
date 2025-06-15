@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 const connect = require("./connect");
 const User = require("./models/User");
 const cors = require("cors");
-const { ObjectId } = mongoose.Types;
 
+const { ObjectId } = mongoose.Types;
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -25,7 +25,8 @@ app.get("/users", async (req, res, next) => {
     if (userid && !ObjectId.isValid(userid)) {
       return res.status(400).json({
         success: false,
-        message: "Not a valid MongoDB ObjectId!",
+        message: "User ID is not valid!",
+        data: [],
       });
     }
 
@@ -49,7 +50,7 @@ app.post("/users", async (req, res, next) => {
     await User.create(req.body);
     res
       .status(201)
-      .json({ success: true, message: "User created successfully" });
+      .json({ success: true, message: "User created successfully!" });
   } catch (error) {
     console.log(error.message);
     next(error);
