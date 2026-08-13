@@ -25,3 +25,6 @@ coverage/
 .DS_Store
 .vscode/
 .idea/
+
+# Database dumps — real data, sometimes large, never in git.
+backups/

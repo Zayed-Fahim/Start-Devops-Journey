@@ -16,7 +16,14 @@ services:
     stdin_open: true
     tty: true
     depends_on:
-      mongodb:
+      postgres:
+        # `service_started` (the default) only waits for the container process
+        # to exist. `service_healthy` waits for the healthcheck below to pass.
+        # Postgres needs several seconds on first boot to run initdb, create
+        # the cluster and the database. Without this condition the backend
+        # dials a socket nobody is listening on, crashes, and restart-loops
+        # until Postgres happens to win the race. It "works" locally and fails
+        # in CI, which is the most expensive kind of bug.
         condition: service_healthy
     networks:
       - app-network
@@ -50,45 +57,96 @@ services:
       timeout: 10s
       retries: 3
 
-  mongodb:
-    image: mongo
-    container_name: mongodb
-    ports:
-      - "${MONGO_DB_PORT}:27017"
-    volumes:
-      - mongo_data:/data/db
+  postgres:
+    # Pinned to major version 16, never `latest`. Postgres refuses to start on
+    # a data directory written by a NEWER major version, so a floating tag can
+    # silently upgrade the image and lock you out of your own volume with
+    # "database files are incompatible with server". Recovering means finding
+    # the exact old image again. Pin the major version. Always.
+    image: postgres:16-alpine
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Where the cluster lives inside the container. Stated explicitly so the
+      # volume mount below and the image's expectations cannot drift apart.
+      PGDATA: /var/lib/postgresql/data
+    ports:
+      # Exposed so you can reach the DB from the host with psql or a GUI.
+      # In PRODUCTION you would delete this line entirely: the database should
+      # only be reachable from the app network, never from the public internet.
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      # THE hard requirement of this project. A *named volume* is managed by
+      # Docker and has a lifecycle independent of any container: it survives
+      # `docker compose down`, image rebuilds, and container recreation.
+      # It is destroyed by exactly one thing -- `docker compose down -v` --
+      # which is why that flag is banned on this project.
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
     networks:
       - app-network
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 30s
-      timeout: 10s
+      # CMD-SHELL (not the CMD array form) so a shell expands the variables.
+      # The `$$` is escaped: Compose turns `$$` into a literal `$` at parse
+      # time, so the *container's* shell resolves POSTGRES_USER from the
+      # container's own environment. Writing a single `$` would make Compose
+      # substitute the value from the root .env instead -- it happens to work
+      # here, but it silently bakes the host's idea of the credentials into
+      # the check, which then keeps passing after you change them.
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB",
+        ]
+      interval: 10s
+      timeout: 5s
       retries: 5
+      # During initdb the image runs a TEMPORARY server that listens on the
+      # unix socket only. `pg_isready` with no host talks to that socket and
+      # reports "ready" while the real server is still starting -- a false
+      # green that lets dependents start too early. `-h 127.0.0.1` forces a
+      # TCP check, which only succeeds once the real server is accepting
+      # connections the way the backend will.
+      #
+      # start_period: failures during this window do NOT count toward
+      # `retries`, so a slow first boot cannot exhaust the budget and mark the
+      # container permanently unhealthy.
+      start_period: 30s
 
-  mongo-express:
-    image: mongo-express
-    container_name: mongo-express
-    restart: always
-    ports:
-      - "${MONGO_EXPRESS_PORT}:8081"
+  adminer:
+    # A single-PHP-file database GUI; the Postgres-shaped replacement for
+    # mongo-express. Pinned, like everything else.
+    image: adminer:4.8.1
     environment:
-      ME_CONFIG_MONGODB_SERVER: mongodb
-      ME_CONFIG_MONGODB_PORT: 27017
-      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-      ME_CONFIG_BASICAUTH_USERNAME: ${ME_CONFIG_BASICAUTH_USERNAME}
-      ME_CONFIG_BASICAUTH_PASSWORD: ${ME_CONFIG_BASICAUTH_PASSWORD}
+      # Pre-fills the "Server" field on the login form. Note the value is
+      # `postgres` -- the Compose SERVICE NAME, resolved by Docker's embedded
+      # DNS on app-network. Not localhost: inside the adminer container,
+      # localhost is adminer.
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: dracula
+    ports:
+      - "${ADMINER_PORT}:8080"
+    restart: unless-stopped
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
     networks:
       - app-network
 
 volumes:
-  mongo_data:
+  # Declared with no options: Docker creates and manages it, and names it
+  # <project>_postgres_data. Deliberately NOT a bind mount such as
+  # ./data:/var/lib/postgresql/data, because:
+  #   - bind mounts hit host UID/GID mismatches ("permission denied" as the
+  #     postgres user tries to chown a directory your host user owns)
+  #   - they are slow on macOS and Windows (filesystem translation layer)
+  #   - raw database files end up inside the repo, one `git add -A` from
+  #     being committed
+  # Bind mounts are the right tool for SOURCE CODE (see ./backend above,
+  # which is what gives you live reload) and the wrong tool for database
+  # internals.
+  postgres_data:
 
 networks:
   app-network:
