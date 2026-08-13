@@ -1,16 +1,27 @@
 node_modules/
 dist/
 build/
-.env*
-frontend/.env.local
-frontend/.env.prod
-backend/.env.dev
-backend/.env.prod
-.DS_Store
-.vscode/
-.idea/
 coverage/
 .next/
 .nuxt/
-yarn.lock
-package-lock.json
+
+# --- Secrets -----------------------------------------------------------------
+# Ignore every real env file at any depth...
+.env*
+# ...but ALWAYS commit the templates. Without these negations the pattern above
+# also swallows .env.example, and a new contributor has no way to discover
+# which variables the stack needs. The example files are documentation.
+!.env.example
+!.env*.example
+
+# --- Lockfiles ---------------------------------------------------------------
+# yarn.lock and package-lock.json used to be ignored here. That is a bug worth
+# naming: the Dockerfiles run `yarn install --frozen-lockfile`, which is a
+# promise that the dependency tree is byte-for-byte identical on every machine
+# and in CI. Without a committed lockfile that promise is unenforceable, and
+# "works on my laptop, breaks in the pipeline" becomes a weekly event.
+# Lockfiles are now COMMITTED. Do not re-add them below.
+
+.DS_Store
+.vscode/
+.idea/
