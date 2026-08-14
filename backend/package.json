@@ -4,16 +4,19 @@
   "main": "src/server.js",
   "license": "MIT",
   "scripts": {
-    "build": "prisma generate",
-    "dev": "prisma generate && prisma migrate deploy && nodemon --watch src --watch prisma src/server.js",
-    "start": "nodemon --watch src src/server.js",
-    "start:dev": "prisma generate && prisma migrate deploy && nodemon --watch src src/server.js",
-    "start:prod": "prisma migrate deploy && node src/server.js",
+    "build": "node scripts/with-db-url.js node_modules/.bin/prisma generate",
+    "dev": "pnpm run db:generate && pnpm run db:migrate && nodemon --watch src --watch prisma src/server.js",
+    "start": "node src/server.js",
+    "start:dev": "pnpm run db:generate && pnpm run db:migrate && nodemon --watch src src/server.js",
+    "start:prod": "pnpm run db:migrate && node src/server.js",
     "seed": "node prisma/seed.js",
-    "migrate:dev": "prisma migrate dev",
-    "migrate:deploy": "prisma migrate deploy",
-    "migrate:status": "prisma migrate status",
-    "studio": "prisma studio"
+    "db:generate": "node scripts/with-db-url.js node_modules/.bin/prisma generate",
+    "db:migrate": "node scripts/with-db-url.js node_modules/.bin/prisma migrate deploy",
+    "db:migrate:dev": "node scripts/with-db-url.js node_modules/.bin/prisma migrate dev",
+    "db:status": "node scripts/with-db-url.js node_modules/.bin/prisma migrate status",
+    "db:studio": "node scripts/with-db-url.js node_modules/.bin/prisma studio",
+    "lint": "eslint src prisma scripts healthcheck.js",
+    "lint:fix": "eslint src prisma scripts healthcheck.js --fix"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
