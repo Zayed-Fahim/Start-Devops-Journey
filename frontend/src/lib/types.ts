@@ -102,6 +102,32 @@ export interface RoleSummary extends RoleDetail {
   userCount: number;
 }
 
+export interface TeamSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  leadUserId: string | null;
+  lead: { id: string; name: string } | null;
+  memberCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamMember {
+  teamId: string;
+  userId: string;
+  joinedAt: string;
+  name: string;
+  email: string;
+  status: Status;
+  role: Role | null;
+}
+
+export interface TeamMembersResponse {
+  data: TeamMember[];
+  meta: PageMeta;
+}
+
 export interface SessionSummary {
   id: string;
   device: string;

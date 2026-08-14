@@ -3,6 +3,8 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import type {
   PermissionDef,
+  TeamMembersResponse,
+  TeamSummary,
   RoleSummary,
   SessionSummary,
   UserQuery,
@@ -102,6 +104,14 @@ export function getRoles(): Promise<{ data: RoleSummary[] }> {
 
 export function getPermissionCatalogue(): Promise<{ data: PermissionDef[] }> {
   return serverFetch<{ data: PermissionDef[] }>('/api/roles/permissions');
+}
+
+export function getTeams(): Promise<{ data: TeamSummary[] }> {
+  return serverFetch<{ data: TeamSummary[] }>('/api/teams');
+}
+
+export function getTeamMembers(id: string): Promise<TeamMembersResponse> {
+  return serverFetch<TeamMembersResponse>(`/api/teams/${id}/members?limit=100`);
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {

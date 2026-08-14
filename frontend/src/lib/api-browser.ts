@@ -1,4 +1,13 @@
-import type { ApiErrorBody, Role, RoleDetail, Status, User } from './types';
+import type {
+  ApiErrorBody,
+  TeamMembersResponse,
+  Role,
+  RoleDetail,
+  Status,
+  TeamMember,
+  TeamSummary,
+  User,
+} from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000';
 
@@ -148,3 +157,34 @@ export const updateRole = (id: string, input: RoleInput) =>
   request<RoleDetail>(`/api/roles/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
 
 export const deleteRole = (id: string) => request<void>(`/api/roles/${id}`, { method: 'DELETE' });
+
+export interface TeamInput {
+  name?: string;
+  description?: string;
+}
+
+export const createTeam = (input: TeamInput) =>
+  request<TeamSummary>('/api/teams', { method: 'POST', body: JSON.stringify(input) });
+
+export const updateTeam = (id: string, input: TeamInput) =>
+  request<TeamSummary>(`/api/teams/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+
+export const deleteTeam = (id: string) => request<void>(`/api/teams/${id}`, { method: 'DELETE' });
+
+export const listTeamMembers = (id: string) =>
+  request<TeamMembersResponse>(`/api/teams/${id}/members?limit=100`);
+
+export const addTeamMember = (id: string, userId: string) =>
+  request<TeamMember>(`/api/teams/${id}/members`, {
+    method: 'POST',
+    body: JSON.stringify({ userId }),
+  });
+
+export const removeTeamMember = (id: string, userId: string) =>
+  request<void>(`/api/teams/${id}/members/${userId}`, { method: 'DELETE' });
+
+export const setTeamLead = (id: string, userId: string | null) =>
+  request<TeamSummary>(`/api/teams/${id}/lead`, {
+    method: 'PATCH',
+    body: JSON.stringify({ userId }),
+  });

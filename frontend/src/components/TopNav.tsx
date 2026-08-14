@@ -10,6 +10,7 @@ import { UserMenu } from './UserMenu';
 const LINKS: { href: string; label: string; permission?: string }[] = [
   { href: '/', label: 'Users', permission: 'users.read' },
   { href: '/audit-logs', label: 'Audit Logs', permission: 'audit.read' },
+  { href: '/teams', label: 'Teams', permission: 'teams.read' },
   { href: '/permissions', label: 'Permissions', permission: 'roles.read' },
   { href: '/settings', label: 'Settings' },
 ];
@@ -21,10 +22,13 @@ export function TopNav({ user }: { user: SessionUser }) {
 
   return (
     <header className="border-b border-border">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-6 px-4 sm:px-6">
-        <span className="font-semibold tracking-tight">AdminPanel</span>
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 px-4 py-2 sm:h-14 sm:flex-nowrap sm:px-6 sm:py-0">
+        <span className="order-1 font-semibold tracking-tight">AdminPanel</span>
 
-        <nav aria-label="Main" className="flex items-center gap-1">
+        <nav
+          aria-label="Main"
+          className="order-3 -mx-4 flex w-full items-center gap-1 overflow-x-auto px-4 pt-2 sm:order-2 sm:mx-0 sm:w-auto sm:overflow-visible sm:px-0 sm:pt-0"
+        >
           {links.map((link) => {
             const active = pathname === link.href;
             return (
@@ -33,9 +37,9 @@ export function TopNav({ user }: { user: SessionUser }) {
                 href={link.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'relative rounded-lg px-3 py-1.5 text-sm transition-colors',
+                  'relative shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-colors',
                   active
-                    ? 'font-medium text-fg after:absolute after:inset-x-3 after:-bottom-[13px] after:h-0.5 after:rounded-full after:bg-accent'
+                    ? 'bg-surface font-medium text-fg sm:bg-transparent sm:after:absolute sm:after:inset-x-3 sm:after:-bottom-[13px] sm:after:h-0.5 sm:after:rounded-full sm:after:bg-accent'
                     : 'text-fg-muted hover:bg-surface hover:text-fg',
                 )}
               >
@@ -45,7 +49,7 @@ export function TopNav({ user }: { user: SessionUser }) {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="order-2 ml-auto flex items-center gap-3 sm:order-3">
           <ThemeToggle />
           <UserMenu user={user} />
         </div>
