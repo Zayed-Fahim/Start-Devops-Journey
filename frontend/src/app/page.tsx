@@ -27,7 +27,8 @@ async function UsersSection({ query, canManage }: { query: UserQuery; canManage:
         : 'An unexpected error occurred while loading users.';
   }
 
-  if (!result) return <ErrorState message={failure ?? 'Could not load users.'} />;
+  if (!result)
+    return <ErrorState title="Could not load users" message={failure ?? 'Could not load users.'} />;
 
   return (
     <UsersTable

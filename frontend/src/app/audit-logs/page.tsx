@@ -27,7 +27,13 @@ async function TimelineSection({ query }: { query: AuditQuery }) {
         : 'An unexpected error occurred while loading audit logs.';
   }
 
-  if (!result) return <ErrorState message={failure ?? 'Could not load audit logs.'} />;
+  if (!result)
+    return (
+      <ErrorState
+        title="Could not load audit logs"
+        message={failure ?? 'Could not load audit logs.'}
+      />
+    );
 
   return (
     <div className="space-y-4">
