@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 
 const router = express.Router();
 router.get('/healthz', (_req, res) => {
@@ -20,7 +21,7 @@ router.get('/readyz', async (_req, res) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[readyz] database check failed:', error.message);
+    logger.error({ err: error }, 'readiness check failed');
     res.status(503).json({
       status: 'not_ready',
       checks: { database: { status: 'down' } },

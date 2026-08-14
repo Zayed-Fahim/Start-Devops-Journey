@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const env = require('./lib/env');
+const requestLogger = require('./middleware/requestLogger');
 const usersRoutes = require('./routes/users.routes');
 const authRoutes = require('./routes/auth.routes');
 const healthRoutes = require('./routes/health.routes');
@@ -13,6 +14,7 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 
 app.disable('x-powered-by');
+app.use(requestLogger);
 app.set('trust proxy', 1);
 
 app.use(

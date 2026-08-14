@@ -2,6 +2,7 @@ const { ZodError } = require('zod');
 const { HttpError } = require('../lib/httpError');
 const { formatIssues } = require('../validation/users.validation');
 const env = require('../lib/env');
+const logger = require('../lib/logger');
 
 const errorHandler = (err, req, res, next) => {
   if (res.headersSent) return next(err);
@@ -22,7 +23,7 @@ const errorHandler = (err, req, res, next) => {
     return send(413, 'PAYLOAD_TOO_LARGE', 'Request body is too large');
   }
   if (err.name === 'PrismaClientInitializationError' || err.name === 'PrismaClientRustPanicError') {
-    console.error('[error] database unreachable:', err.message);
+    logger.error({ err, reqId: req.id }, 'database unreachable');
     return send(503, 'DATABASE_UNAVAILABLE', 'Database is unavailable');
   }
   switch (err.code) {
@@ -43,7 +44,7 @@ const errorHandler = (err, req, res, next) => {
     default:
       break;
   }
-  console.error('[error] unhandled:', err);
+  logger.error({ err, reqId: req.id, method: req.method, url: req.originalUrl }, 'unhandled error');
   return send(
     500,
     'INTERNAL_ERROR',
