@@ -1,8 +1,8 @@
 const prisma = require('../lib/prisma');
 
-const CACHE_TTL_MS = 30_000;
+const CATALOGUE_TTL_MS = 300_000;
 
-const cache = new Map();
+const MANAGE_KEY = 'roles.manage';
 
 const ROLE_SELECT = Object.freeze({
   id: true,
@@ -13,29 +13,36 @@ const ROLE_SELECT = Object.freeze({
   updatedAt: true,
 });
 
-const loadPermissions = async (roleId) => {
-  const rows = await prisma.rolePermission.findMany({
-    where: { roleId },
-    select: { permission: { select: { key: true } } },
-  });
-  return rows.map((row) => row.permission.key);
+const ROLE_WITH_PERMISSIONS_SELECT = Object.freeze({
+  ...ROLE_SELECT,
+  permissions: { select: { permission: { select: { key: true } } } },
+});
+
+let catalogue = null;
+
+const permissionCatalogue = async () => {
+  if (catalogue && catalogue.expiresAt > Date.now()) return catalogue.byKey;
+
+  const rows = await prisma.permission.findMany({ select: { id: true, key: true } });
+  catalogue = {
+    byKey: new Map(rows.map((row) => [row.key, row.id])),
+    expiresAt: Date.now() + CATALOGUE_TTL_MS,
+  };
+  return catalogue.byKey;
 };
 
-const getPermissionsForRole = async (roleId) => {
-  if (!roleId) return [];
-
-  const cached = cache.get(roleId);
-  if (cached && cached.expiresAt > Date.now()) return cached.keys;
-
-  const keys = await loadPermissions(roleId);
-  cache.set(roleId, { keys, expiresAt: Date.now() + CACHE_TTL_MS });
-  return keys;
+const invalidateCatalogue = () => {
+  catalogue = null;
 };
 
-const invalidateRole = (roleId) => {
-  if (roleId) cache.delete(roleId);
-  else cache.clear();
+const resolvePermissionIds = async (keys) => {
+  const byKey = await permissionCatalogue();
+  const missing = keys.filter((key) => !byKey.has(key));
+  return { ids: keys.filter((key) => byKey.has(key)).map((key) => byKey.get(key)), missing };
 };
+
+const toRole = (role) =>
+  role && { ...role, permissions: role.permissions.map((entry) => entry.permission.key).sort() };
 
 const listPermissions = () =>
   prisma.permission.findMany({
@@ -45,6 +52,7 @@ const listPermissions = () =>
 
 const listRoles = async () => {
   const roles = await prisma.accessRole.findMany({
+    relationLoadStrategy: 'join',
     select: {
       ...ROLE_SELECT,
       permissions: { select: { permission: { select: { key: true } } } },
@@ -65,73 +73,88 @@ const listRoles = async () => {
   }));
 };
 
-const getRole = async (id) => {
-  const role = await prisma.accessRole.findUnique({
-    where: { id },
-    select: { ...ROLE_SELECT, permissions: { select: { permission: { select: { key: true } } } } },
-  });
-  if (!role) return null;
-  return { ...role, permissions: role.permissions.map((entry) => entry.permission.key).sort() };
+const getRole = async (id) =>
+  toRole(
+    await prisma.accessRole.findUnique({
+      relationLoadStrategy: 'join',
+      where: { id },
+      select: ROLE_WITH_PERMISSIONS_SELECT,
+    }),
+  );
+
+const loadRoleForUpdate = async (id) => {
+  const [role, otherManagers] = await prisma.$transaction([
+    prisma.accessRole.findUnique({
+      relationLoadStrategy: 'join',
+      where: { id },
+      select: ROLE_WITH_PERMISSIONS_SELECT,
+    }),
+    prisma.rolePermission.count({
+      where: { roleId: { not: id }, permission: { key: MANAGE_KEY } },
+    }),
+  ]);
+
+  return { role: toRole(role), otherManagers };
 };
 
-const resolvePermissionIds = async (keys) => {
-  const found = await prisma.permission.findMany({
-    where: { key: { in: keys } },
-    select: { id: true, key: true },
-  });
+const loadRoleForDelete = async (id) => {
+  const [role, userCount] = await prisma.$transaction([
+    prisma.accessRole.findUnique({
+      relationLoadStrategy: 'join',
+      where: { id },
+      select: ROLE_WITH_PERMISSIONS_SELECT,
+    }),
+    prisma.user.count({ where: { roleId: id } }),
+  ]);
 
-  const missing = keys.filter((key) => !found.some((permission) => permission.key === key));
-  return { ids: found.map((permission) => permission.id), missing };
+  return { role: toRole(role), userCount };
 };
 
-const createRole = async ({ name, description, permissions }) => {
+const wouldOrphanRoleManagement = (nextPermissions, otherManagers) =>
+  !nextPermissions.includes(MANAGE_KEY) && otherManagers === 0;
+
+const createRole = async ({ id, name, description, permissions }, auditEntry) => {
   const { ids, missing } = await resolvePermissionIds(permissions);
   if (missing.length > 0) return { missing };
 
-  const role = await prisma.accessRole.create({
-    data: {
-      name,
-      description: description ?? null,
-      isSystem: false,
-      permissions: { create: ids.map((permissionId) => ({ permissionId })) },
-    },
-    select: ROLE_SELECT,
-  });
+  const writes = [
+    prisma.accessRole.create({
+      relationLoadStrategy: 'join',
+      data: {
+        id,
+        name,
+        description: description ?? null,
+        isSystem: false,
+        permissions: { create: ids.map((permissionId) => ({ permissionId })) },
+      },
+      select: ROLE_WITH_PERMISSIONS_SELECT,
+    }),
+  ];
+  if (auditEntry) writes.push(prisma.auditLog.create({ data: auditEntry, select: { id: true } }));
 
-  return { role: await getRole(role.id) };
+  const results = await prisma.$transaction(writes);
+  return { role: toRole(results[0]) };
 };
 
-const MANAGE_KEY = 'roles.manage';
-
-const wouldOrphanRoleManagement = async (roleId, nextPermissions) => {
-  if (nextPermissions.includes(MANAGE_KEY)) return false;
-
-  const others = await prisma.rolePermission.count({
-    where: { roleId: { not: roleId }, permission: { key: MANAGE_KEY } },
-  });
-
-  return others === 0;
-};
-
-const roleHoldsManage = async (roleId) =>
-  (await prisma.rolePermission.count({
-    where: { roleId, permission: { key: MANAGE_KEY } },
-  })) > 0;
-
-const updateRolePermissions = async (id, permissions) => {
+const updateRolePermissions = async (id, permissions, auditEntry) => {
   const { ids, missing } = await resolvePermissionIds(permissions);
   if (missing.length > 0) return { missing };
 
-  await prisma.$transaction([
+  const writes = [
     prisma.rolePermission.deleteMany({ where: { roleId: id } }),
     prisma.rolePermission.createMany({
       data: ids.map((permissionId) => ({ roleId: id, permissionId })),
     }),
-    prisma.accessRole.update({ where: { id }, data: { updatedAt: new Date() } }),
-  ]);
+    prisma.accessRole.update({
+      where: { id },
+      data: { updatedAt: new Date() },
+      select: ROLE_SELECT,
+    }),
+  ];
+  if (auditEntry) writes.push(prisma.auditLog.create({ data: auditEntry, select: { id: true } }));
 
-  invalidateRole(id);
-  return { role: await getRole(id) };
+  const results = await prisma.$transaction(writes);
+  return { role: { ...results[2], permissions: [...permissions].sort() } };
 };
 
 const updateRoleDetails = async (id, { name, description }) => {
@@ -140,29 +163,34 @@ const updateRoleDetails = async (id, { name, description }) => {
   if (description !== undefined) data.description = description;
   if (Object.keys(data).length === 0) return getRole(id);
 
-  await prisma.accessRole.update({ where: { id }, data });
-  invalidateRole(id);
-  return getRole(id);
+  return toRole(
+    await prisma.accessRole.update({
+      relationLoadStrategy: 'join',
+      where: { id },
+      data,
+      select: ROLE_WITH_PERMISSIONS_SELECT,
+    }),
+  );
 };
 
-const deleteRole = async (id) => {
-  const deleted = await prisma.accessRole.delete({
-    where: { id },
-    select: { id: true, name: true },
-  });
-  invalidateRole(id);
-  return deleted;
+const deleteRole = async (id, auditEntry) => {
+  const writes = [prisma.accessRole.delete({ where: { id }, select: { id: true, name: true } })];
+  if (auditEntry) writes.push(prisma.auditLog.create({ data: auditEntry, select: { id: true } }));
+
+  const results = await prisma.$transaction(writes);
+  return results[0];
 };
 
 module.exports = {
   MANAGE_KEY,
+  ROLE_WITH_PERMISSIONS_SELECT,
+  invalidateCatalogue,
   wouldOrphanRoleManagement,
-  roleHoldsManage,
-  getPermissionsForRole,
-  invalidateRole,
   listPermissions,
   listRoles,
   getRole,
+  loadRoleForUpdate,
+  loadRoleForDelete,
   createRole,
   updateRolePermissions,
   updateRoleDetails,

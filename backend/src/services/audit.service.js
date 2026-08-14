@@ -48,26 +48,25 @@ const resolveActorLabel = async (actor) => {
   return found?.name ?? found?.email ?? SYSTEM_ACTOR;
 };
 
-const record = async ({ actor, action, category, summary, target, context }) => {
-  try {
-    const actorLabel = await resolveActorLabel(actor);
+const buildEntry = ({ actor, actorLabel, action, category, summary, target, context }) => ({
+  actorId: actor?.id ?? null,
+  actorLabel: (actorLabel ?? actor?.name ?? actor?.email ?? SYSTEM_ACTOR).slice(0, 160),
+  action,
+  category,
+  summary: summary.slice(0, 500),
+  targetType: target?.type ?? null,
+  targetId: target?.id ?? null,
+  targetLabel: target?.label?.slice(0, 255) ?? null,
+  ip: context?.ip?.slice(0, 64) ?? null,
+  userAgent: context?.userAgent?.slice(0, 255) ?? null,
+});
 
-    await prisma.auditLog.create({
-      data: {
-        actorId: actor?.id ?? null,
-        actorLabel: actorLabel.slice(0, 160),
-        action,
-        category,
-        summary: summary.slice(0, 500),
-        targetType: target?.type ?? null,
-        targetId: target?.id ?? null,
-        targetLabel: target?.label?.slice(0, 255) ?? null,
-        ip: context?.ip?.slice(0, 64) ?? null,
-        userAgent: context?.userAgent?.slice(0, 255) ?? null,
-      },
-    });
+const record = async (input) => {
+  try {
+    const actorLabel = await resolveActorLabel(input.actor);
+    await prisma.auditLog.create({ data: buildEntry({ ...input, actorLabel }) });
   } catch (error) {
-    logger.error({ err: error, action }, 'failed to write audit log');
+    logger.error({ err: error, action: input.action }, 'failed to write audit log');
   }
 };
 
@@ -126,6 +125,7 @@ module.exports = {
   AUDIT_ACTIONS,
   AUDIT_LOG_SELECT,
   SYSTEM_ACTOR,
+  buildEntry,
   record,
   listAuditLogs,
   getAuditStats,

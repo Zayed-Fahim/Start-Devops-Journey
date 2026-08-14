@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const rbac = require('../services/rbac.service');
 const audit = require('../services/audit.service');
 const { HttpError, notFound, conflict } = require('../lib/httpError');
@@ -38,17 +39,20 @@ const getRole = async (req, res) => {
 
 const createRole = async (req, res) => {
   const data = parseOrThrow(createRoleSchema, req.body, 'Invalid request body');
-  const result = await rbac.createRole(data);
-  if (result.missing) throw unknownPermissions(result.missing);
+  const id = crypto.randomUUID();
 
-  await audit.record({
-    actor: { id: req.user.id },
-    action: audit.AUDIT_ACTIONS.ROLE_CREATED,
-    category: 'CREATE',
-    summary: `created role ${result.role.name} with ${result.role.permissions.length} permission(s)`,
-    target: { type: 'role', id: result.role.id, label: result.role.name },
-    context: requestContext(req),
-  });
+  const result = await rbac.createRole(
+    { ...data, id },
+    audit.buildEntry({
+      actor: req.user,
+      action: audit.AUDIT_ACTIONS.ROLE_CREATED,
+      category: 'CREATE',
+      summary: `created role ${data.name} with ${data.permissions.length} permission(s)`,
+      target: { type: 'role', id, label: data.name },
+      context: requestContext(req),
+    }),
+  );
+  if (result.missing) throw unknownPermissions(result.missing);
 
   res.status(201).location(`/api/roles/${result.role.id}`).json(result.role);
 };
@@ -57,7 +61,7 @@ const updateRole = async (req, res) => {
   const { id } = parseOrThrow(roleIdParamSchema, req.params, 'Invalid role id');
   const data = parseOrThrow(updateRoleSchema, req.body, 'Invalid request body');
 
-  const existing = await rbac.getRole(id);
+  const { role: existing, otherManagers } = await rbac.loadRoleForUpdate(id);
   if (!existing) throw notFound(`No role found with id ${id}`);
 
   if (existing.isSystem && (data.name !== undefined || data.description !== undefined)) {
@@ -71,7 +75,7 @@ const updateRole = async (req, res) => {
   }
 
   if (data.permissions !== undefined) {
-    if (await rbac.wouldOrphanRoleManagement(id, data.permissions)) {
+    if (rbac.wouldOrphanRoleManagement(data.permissions, otherManagers)) {
       throw new HttpError(
         400,
         'LAST_ROLE_MANAGER',
@@ -87,13 +91,26 @@ const updateRole = async (req, res) => {
       );
     }
 
-    const result = await rbac.updateRolePermissions(id, data.permissions);
+    const result = await rbac.updateRolePermissions(
+      id,
+      data.permissions,
+      audit.buildEntry({
+        actor: req.user,
+        action: audit.AUDIT_ACTIONS.ROLE_UPDATED,
+        category: 'SECURITY',
+        summary: `updated role ${role.name}: ${data.permissions.length} permission(s)`,
+        target: { type: 'role', id, label: role.name },
+        context: requestContext(req),
+      }),
+    );
     if (result.missing) throw unknownPermissions(result.missing);
-    role = result.role;
+
+    res.status(200).json(result.role);
+    return;
   }
 
   await audit.record({
-    actor: { id: req.user.id },
+    actor: req.user,
     action: audit.AUDIT_ACTIONS.ROLE_UPDATED,
     category: 'SECURITY',
     summary: `updated role ${role.name}: ${role.permissions.length} permission(s)`,
@@ -107,28 +124,26 @@ const updateRole = async (req, res) => {
 const deleteRole = async (req, res) => {
   const { id } = parseOrThrow(roleIdParamSchema, req.params, 'Invalid role id');
 
-  const existing = await rbac.getRole(id);
+  const { role: existing, userCount } = await rbac.loadRoleForDelete(id);
   if (!existing) throw notFound(`No role found with id ${id}`);
   if (existing.isSystem) {
     throw new HttpError(400, 'SYSTEM_ROLE', 'System roles cannot be deleted');
   }
-
-  const roles = await rbac.listRoles();
-  const inUse = roles.find((role) => role.id === id)?.userCount ?? 0;
-  if (inUse > 0) {
-    throw conflict(`This role is assigned to ${inUse} user(s). Reassign them first.`);
+  if (userCount > 0) {
+    throw conflict(`This role is assigned to ${userCount} user(s). Reassign them first.`);
   }
 
-  const deleted = await rbac.deleteRole(id);
-
-  await audit.record({
-    actor: { id: req.user.id },
-    action: audit.AUDIT_ACTIONS.ROLE_DELETED,
-    category: 'DELETE',
-    summary: `deleted role ${deleted.name}`,
-    target: { type: 'role', id: deleted.id, label: deleted.name },
-    context: requestContext(req),
-  });
+  await rbac.deleteRole(
+    id,
+    audit.buildEntry({
+      actor: req.user,
+      action: audit.AUDIT_ACTIONS.ROLE_DELETED,
+      category: 'DELETE',
+      summary: `deleted role ${existing.name}`,
+      target: { type: 'role', id, label: existing.name },
+      context: requestContext(req),
+    }),
+  );
 
   res.status(204).end();
 };

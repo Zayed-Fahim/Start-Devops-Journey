@@ -1,24 +1,37 @@
 const prisma = require('../lib/prisma');
 const { HttpError } = require('../lib/httpError');
-const rbac = require('../services/rbac.service');
 
-const loadUserPermissions = async (userId) => {
+const USER_CONTEXT_SELECT = Object.freeze({
+  roleId: true,
+  name: true,
+  email: true,
+  roleRef: { select: { permissions: { select: { permission: { select: { key: true } } } } } },
+});
+
+const loadUserContext = async (userId) => {
   const user = await prisma.user.findUnique({
+    relationLoadStrategy: 'join',
     where: { id: userId },
-    select: { roleId: true },
+    select: USER_CONTEXT_SELECT,
   });
-  if (!user) return [];
-  return rbac.getPermissionsForRole(user.roleId);
+
+  return {
+    roleId: user?.roleId ?? null,
+    name: user?.name ?? null,
+    email: user?.email ?? null,
+    permissions: (user?.roleRef?.permissions ?? []).map((entry) => entry.permission.key).sort(),
+  };
 };
+
+const loadUserPermissions = async (userId) => (await loadUserContext(userId)).permissions;
 
 const attachPermissions = async (req) => {
   if (!req.permissions) {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: { roleId: true },
-    });
-    req.userRoleId = user?.roleId ?? null;
-    req.permissions = await rbac.getPermissionsForRole(req.userRoleId);
+    const context = await loadUserContext(req.user.id);
+    req.userRoleId = context.roleId;
+    req.user.name = context.name;
+    req.user.email = context.email;
+    req.permissions = context.permissions;
   }
   return req.permissions;
 };
@@ -53,4 +66,4 @@ const requirePermission =
     }
   };
 
-module.exports = { requirePermission, loadUserPermissions };
+module.exports = { requirePermission, loadUserContext, loadUserPermissions };

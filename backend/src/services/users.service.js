@@ -78,6 +78,7 @@ const listUsers = async ({ page, limit, search, role, status, sortBy, order }) =
     [
       prisma.user.count({ where }),
       prisma.user.findMany({
+        relationLoadStrategy: 'join',
         where,
         select: USER_SELECT,
         orderBy: [orderFor(sortBy, order), { id: 'asc' }],
@@ -100,7 +101,13 @@ const listUsers = async ({ page, limit, search, role, status, sortBy, order }) =
 };
 
 const getUserById = async (id) =>
-  toPublicUser(await prisma.user.findUnique({ where: { id }, select: USER_SELECT }));
+  toPublicUser(
+    await prisma.user.findUnique({
+      relationLoadStrategy: 'join',
+      where: { id },
+      select: USER_SELECT,
+    }),
+  );
 
 const createUser = async ({ password, role, ...rest }) =>
   toPublicUser(
