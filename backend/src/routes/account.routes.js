@@ -2,6 +2,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const asyncHandler = require('../lib/asyncHandler');
 const controller = require('../controllers/account.controller');
+const contentController = require('../controllers/content.controller');
 const { requireAuth } = require('../middleware/requireAuth');
 const { verifyCsrf } = require('../middleware/csrf');
 
@@ -29,5 +30,7 @@ router.post(
   verifyCsrf,
   asyncHandler(controller.changePassword),
 );
+
+router.patch('/preferences', verifyCsrf, asyncHandler(contentController.updatePreferences));
 
 module.exports = router;

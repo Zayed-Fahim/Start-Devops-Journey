@@ -5,7 +5,16 @@ const prisma = new PrismaClient({
   log: env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
 });
 
-const REQUIRED_MODELS = ['user', 'refreshToken', 'auditLog', 'team', 'teamMember'];
+const REQUIRED_MODELS = [
+  'user',
+  'refreshToken',
+  'auditLog',
+  'team',
+  'teamMember',
+  'notification',
+  'document',
+  'supportRequest',
+];
 
 const missing = REQUIRED_MODELS.filter((model) => typeof prisma[model] !== 'object');
 

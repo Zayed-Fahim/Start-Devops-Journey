@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const teams = require('../services/teams.service');
 const audit = require('../services/audit.service');
+const notifications = require('../services/notifications.service');
 const { notFound, conflict, badRequest } = require('../lib/httpError');
 const { parseOrThrow } = require('../validation/users.validation');
 const {
@@ -136,6 +137,16 @@ const addMember = async (req, res) => {
     }),
   );
 
+  if (user.id !== req.user.id) {
+    await notifications.notify({
+      userId: user.id,
+      title: `You were added to ${team.name}`,
+      body: `${req.user.name ?? 'An administrator'} added you to the team.`,
+      href: '/teams',
+      category: 'UPDATE',
+    });
+  }
+
   res.status(201).json(member);
 };
 
@@ -164,6 +175,16 @@ const removeMember = async (req, res) => {
       context: requestContext(req),
     }),
   );
+
+  if (user && user.id !== req.user.id) {
+    await notifications.notify({
+      userId: user.id,
+      title: `You were removed from ${team.name}`,
+      body: `${req.user.name ?? 'An administrator'} removed you from the team.`,
+      href: '/teams',
+      category: 'UPDATE',
+    });
+  }
 
   res.status(204).end();
 };

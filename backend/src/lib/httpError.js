@@ -13,4 +13,8 @@ const badRequest = (message = 'Invalid request', details = undefined) =>
 const notFound = (message = 'Resource not found') => new HttpError(404, 'NOT_FOUND', message);
 const conflict = (message = 'Resource already exists', details = undefined) =>
   new HttpError(409, 'CONFLICT', message, details);
-module.exports = { HttpError, badRequest, notFound, conflict };
+const forbidden = (
+  message = 'You do not have permission to perform this action',
+  details = undefined,
+) => new HttpError(403, 'FORBIDDEN', message, details);
+module.exports = { HttpError, badRequest, notFound, conflict, forbidden };

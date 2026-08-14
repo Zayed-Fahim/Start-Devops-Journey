@@ -1,5 +1,6 @@
 const usersService = require('../services/users.service');
 const audit = require('../services/audit.service');
+const notifications = require('../services/notifications.service');
 const { notFound } = require('../lib/httpError');
 const {
   createUserSchema,
@@ -67,6 +68,18 @@ const updateUser = async (req, res) => {
     target: { type: 'user', id: user.id, label: user.email },
     context: requestContext(req),
   });
+
+  if (user.id !== req.user.id) {
+    await notifications.notify({
+      userId: user.id,
+      title: passwordChanged ? 'Your password was reset' : 'Your account was updated',
+      body: passwordChanged
+        ? 'An administrator reset your password. Sign in again if you are signed out.'
+        : `An administrator updated ${fields.join(', ') || 'your details'}.`,
+      href: '/settings',
+      category: passwordChanged ? 'SECURITY' : 'UPDATE',
+    });
+  }
 
   res.status(200).json(user);
 };

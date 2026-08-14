@@ -11,6 +11,8 @@ const auditRoutes = require('./routes/audit.routes');
 const accountRoutes = require('./routes/account.routes');
 const rolesRoutes = require('./routes/roles.routes');
 const teamsRoutes = require('./routes/teams.routes');
+const notificationsRoutes = require('./routes/notifications.routes');
+const contentRoutes = require('./routes/content.routes');
 const healthRoutes = require('./routes/health.routes');
 const notFoundHandler = require('./middleware/notFoundHandler');
 const errorHandler = require('./middleware/errorHandler');
@@ -82,6 +84,8 @@ app.use('/api/audit-logs', auditRoutes);
 app.use('/api/account', accountRoutes);
 app.use('/api/roles', rolesRoutes);
 app.use('/api/teams', teamsRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api', contentRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

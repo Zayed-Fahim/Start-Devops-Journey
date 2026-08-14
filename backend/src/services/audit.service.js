@@ -26,6 +26,10 @@ const AUDIT_ACTIONS = Object.freeze({
   TEAM_MEMBER_ADDED: 'team.member_added',
   TEAM_MEMBER_REMOVED: 'team.member_removed',
   TEAM_LEAD_CHANGED: 'team.lead_changed',
+  DOCUMENT_UPDATED: 'document.updated',
+  SUPPORT_REQUESTED: 'support.requested',
+  SUPPORT_UPDATED: 'support.updated',
+  PREFERENCES_UPDATED: 'account.preferences_updated',
 });
 
 const AUDIT_LOG_SELECT = Object.freeze({

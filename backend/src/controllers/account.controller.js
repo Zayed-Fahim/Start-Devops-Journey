@@ -2,6 +2,7 @@ const accountService = require('../services/account.service');
 const { parseOrThrow } = require('../validation/users.validation');
 const { changePasswordSchema, sessionIdParamSchema } = require('../validation/account.validation');
 const { REFRESH_COOKIE } = require('../lib/cookies');
+const notifications = require('../services/notifications.service');
 
 const requestContext = (req) => ({
   userAgent: req.get('user-agent') ?? undefined,
@@ -21,6 +22,15 @@ const revokeSession = async (req, res) => {
     req.cookies?.[REFRESH_COOKIE],
     requestContext(req),
   );
+
+  await notifications.notify({
+    userId: req.user.id,
+    title: 'Your password was changed',
+    body: `Other sessions signed out: ${result.revokedSessions}. If this was not you, change it again immediately.`,
+    href: '/settings',
+    category: 'SECURITY',
+  });
+
   res.status(200).json(result);
 };
 
@@ -30,6 +40,15 @@ const revokeOtherSessions = async (req, res) => {
     req.cookies?.[REFRESH_COOKIE],
     requestContext(req),
   );
+
+  await notifications.notify({
+    userId: req.user.id,
+    title: 'Your password was changed',
+    body: `Other sessions signed out: ${result.revokedSessions}. If this was not you, change it again immediately.`,
+    href: '/settings',
+    category: 'SECURITY',
+  });
+
   res.status(200).json(result);
 };
 
@@ -41,6 +60,15 @@ const changePassword = async (req, res) => {
     req.cookies?.[REFRESH_COOKIE],
     requestContext(req),
   );
+
+  await notifications.notify({
+    userId: req.user.id,
+    title: 'Your password was changed',
+    body: `Other sessions signed out: ${result.revokedSessions}. If this was not you, change it again immediately.`,
+    href: '/settings',
+    category: 'SECURITY',
+  });
+
   res.status(200).json(result);
 };
 
