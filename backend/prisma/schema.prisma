@@ -8,12 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum Role {
-  ADMIN
-  DEVELOPER
-  USER
-}
-
 enum Status {
   ACTIVE
   INACTIVE
@@ -32,7 +26,6 @@ model User {
   email    String @unique @db.VarChar(255)
   password String
 
-  role   Role   @default(USER)
   status Status @default(ACTIVE)
 
   failedLoginCount Int       @default(0)
@@ -48,7 +41,7 @@ model User {
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
 
-  @@index([role])
+  @@index([roleId])
   @@index([status])
   @@index([createdAt])
   @@map("users")

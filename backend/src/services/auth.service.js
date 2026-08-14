@@ -5,6 +5,7 @@ const env = require('../lib/env');
 const { HttpError, conflict } = require('../lib/httpError');
 const logger = require('../lib/logger');
 const audit = require('./audit.service');
+const { toPublicUser } = require('./users.service');
 const { enforceSessionCap } = require('./sessionMaintenance.service');
 const {
   signAccessToken,
@@ -18,16 +19,19 @@ const PUBLIC_USER_SELECT = Object.freeze({
   id: true,
   name: true,
   email: true,
-  role: true,
   status: true,
   createdAt: true,
   updatedAt: true,
+  roleId: true,
+  roleRef: { select: { name: true } },
 });
 
 const invalidCredentials = () =>
   new HttpError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
 
 const DUMMY_HASH = bcrypt.hashSync('unused-placeholder-for-timing-equalisation', 10);
+
+const DEFAULT_ROLE_NAME = 'USER';
 
 const issueSession = async (user, { familyId, context }) => {
   const refreshToken = createRefreshToken();
@@ -57,13 +61,18 @@ const register = async ({ name, email, password }, context) => {
       { field: 'email', message: 'This email is already taken' },
     ]);
 
+  const defaultRole = await prisma.accessRole.findUnique({
+    where: { name: DEFAULT_ROLE_NAME },
+    select: { id: true },
+  });
+
   const user = await prisma.user.create({
     data: {
       name,
       email,
       password: await bcrypt.hash(password, env.BCRYPT_ROUNDS),
-      role: 'USER',
       status: 'ACTIVE',
+      roleId: defaultRole?.id ?? null,
     },
     select: PUBLIC_USER_SELECT,
   });
@@ -77,9 +86,10 @@ const register = async ({ name, email, password }, context) => {
     context,
   });
 
-  const tokens = await issueSession(user, { context });
+  const publicUser = toPublicUser(user);
+  const tokens = await issueSession(publicUser, { context });
   await enforceSessionCap(user.id);
-  return { user, tokens };
+  return { user: publicUser, tokens };
 };
 
 const login = async ({ email, password }, context) => {
@@ -149,9 +159,10 @@ const login = async ({ email, password }, context) => {
     context,
   });
 
-  const tokens = await issueSession(updated, { context });
+  const publicUser = toPublicUser(updated);
+  const tokens = await issueSession(publicUser, { context });
   await enforceSessionCap(updated.id);
-  return { user: updated, tokens };
+  return { user: publicUser, tokens };
 };
 
 const inheritDeviceContext = (stored, context) => ({
@@ -206,11 +217,11 @@ const rotateRefreshToken = async (presentedToken, context) => {
       'refresh replay inside grace window, treating as a concurrent request',
     );
 
-    const graceTokens = await issueSession(stored.user, {
+    const graceTokens = await issueSession(toPublicUser(stored.user), {
       familyId: stored.familyId,
       context: inheritDeviceContext(stored, context),
     });
-    return { user: stored.user, tokens: graceTokens };
+    return { user: toPublicUser(stored.user), tokens: graceTokens };
   }
 
   if (stored.expiresAt <= new Date()) {
@@ -230,11 +241,11 @@ const rotateRefreshToken = async (presentedToken, context) => {
     data: { revokedAt: new Date() },
   });
 
-  const tokens = await issueSession(stored.user, {
+  const tokens = await issueSession(toPublicUser(stored.user), {
     familyId: stored.familyId,
     context: inheritDeviceContext(stored, context),
   });
-  return { user: stored.user, tokens };
+  return { user: toPublicUser(stored.user), tokens };
 };
 
 const logout = async (presentedToken, context) => {
@@ -261,8 +272,8 @@ const logout = async (presentedToken, context) => {
   });
 };
 
-const getSessionUser = (userId) =>
-  prisma.user.findUnique({ where: { id: userId }, select: PUBLIC_USER_SELECT });
+const getSessionUser = async (userId) =>
+  toPublicUser(await prisma.user.findUnique({ where: { id: userId }, select: PUBLIC_USER_SELECT }));
 
 module.exports = {
   PUBLIC_USER_SELECT,

@@ -1,7 +1,6 @@
 const { z } = require('zod');
 const { badRequest } = require('../lib/httpError');
 
-const ROLES = ['ADMIN', 'DEVELOPER', 'USER'];
 const STATUSES = ['ACTIVE', 'INACTIVE'];
 const SORTABLE_FIELDS = ['name', 'email', 'role', 'status', 'createdAt'];
 const emptyToUndefined = (value) => (value === '' || value === null ? undefined : value);
@@ -27,9 +26,7 @@ const userFields = {
   name: nameField,
   email: emailField,
   password: passwordField,
-  role: z.enum(ROLES, {
-    errorMap: () => ({ message: `Role must be one of: ${ROLES.join(', ')}` }),
-  }),
+  role: z.string().trim().min(1, 'Role is required').max(64),
   status: z.enum(STATUSES, {
     errorMap: () => ({ message: `Status must be one of: ${STATUSES.join(', ')}` }),
   }),
@@ -68,7 +65,7 @@ const listUsersQuerySchema = z.object({
       .transform((value) => Math.min(value, 100)),
   ),
   search: z.preprocess(emptyToUndefined, z.string().trim().max(255).optional()),
-  role: z.preprocess(emptyToUndefined, z.enum(ROLES).optional()),
+  role: z.preprocess(emptyToUndefined, z.string().trim().max(64).optional()),
   status: z.preprocess(emptyToUndefined, z.enum(STATUSES).optional()),
   sortBy: z.preprocess(emptyToUndefined, z.enum(SORTABLE_FIELDS).default('createdAt')),
   order: z.preprocess(emptyToUndefined, z.enum(['asc', 'desc']).default('desc')),
@@ -89,7 +86,6 @@ const parseOrThrow = (schema, data, message) => {
   return result.data;
 };
 module.exports = {
-  ROLES,
   STATUSES,
   SORTABLE_FIELDS,
   createUserSchema,

@@ -198,23 +198,29 @@ async function main() {
       where: { email: user.email },
       update: {
         name: user.name,
-        role: user.role,
         status: user.status,
         roleId: roleIdByName[user.role] ?? null,
       },
-      create: { ...user, password, roleId: roleIdByName[user.role] ?? null },
+      create: {
+        name: user.name,
+        email: user.email,
+        status: user.status,
+        createdAt: user.createdAt,
+        password,
+        roleId: roleIdByName[user.role] ?? null,
+      },
     });
     if (existing) updated += 1;
     else created += 1;
   }
-  const [total, byRole, byStatus] = await Promise.all([
+  const [total, roleCounts, byStatus] = await Promise.all([
     prisma.user.count(),
-    prisma.user.groupBy({ by: ['role'], _count: { _all: true } }),
+    prisma.accessRole.findMany({ select: { name: true, _count: { select: { users: true } } } }),
     prisma.user.groupBy({ by: ['status'], _count: { _all: true } }),
   ]);
   console.log(`\n  created: ${created}   updated: ${updated}`);
   console.log(`  total users in database: ${total}`);
-  console.log(`  by role:   ${byRole.map((r) => `${r.role}=${r._count._all}`).join('  ')}`);
+  console.log(`  by role:   ${roleCounts.map((r) => `${r.name}=${r._count.users}`).join('  ')}`);
   console.log(`  by status: ${byStatus.map((s) => `${s.status}=${s._count._all}`).join('  ')}`);
   console.log(`\n  every seeded user's password is: ${PASSWORD}\n`);
 }
