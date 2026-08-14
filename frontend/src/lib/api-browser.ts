@@ -1,5 +1,11 @@
 import type {
   ApiErrorBody,
+  AppNotification,
+  DocumentPage,
+  NotificationsResponse,
+  SupportRequest,
+  SupportRequestsResponse,
+  TimeFormat,
   TeamMembersResponse,
   Role,
   RoleDetail,
@@ -188,3 +194,57 @@ export const setTeamLead = (id: string, userId: string | null) =>
     method: 'PATCH',
     body: JSON.stringify({ userId }),
   });
+
+export const listNotifications = (page = 1, limit = 10) =>
+  request<NotificationsResponse>(`/api/notifications?page=${page}&limit=${limit}`);
+
+export const unreadNotificationCount = () =>
+  request<{ unread: number }>('/api/notifications/unread-count');
+
+export const markNotificationRead = (id: string) =>
+  request<{ changed: number; unread: number }>(`/api/notifications/${id}/read`, {
+    method: 'PATCH',
+    body: JSON.stringify({}),
+  });
+
+export const markAllNotificationsRead = () =>
+  request<{ changed: number; unread: number }>('/api/notifications/read-all', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+
+export const saveDocumentPage = (
+  kind: 'docs' | 'support',
+  input: { title: string; body: string },
+) =>
+  request<DocumentPage>(`/api/documents/${kind}`, { method: 'PUT', body: JSON.stringify(input) });
+
+export const createSupportRequest = (input: { subject: string; body: string }) =>
+  request<SupportRequest>('/api/support/requests', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+
+export const listSupportRequests = (page = 1, status?: string) => {
+  const params = new URLSearchParams({ page: String(page) });
+  if (status) params.set('status', status);
+  return request<SupportRequestsResponse>(`/api/support/requests?${params.toString()}`);
+};
+
+export const setSupportRequestStatus = (id: string, status: 'OPEN' | 'CLOSED') =>
+  request<SupportRequest>(`/api/support/requests/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+
+export const savePreferences = (input: {
+  country?: string | null;
+  timezone?: string | null;
+  timeFormat?: TimeFormat;
+}) =>
+  request<{ id: string; country: string | null; timezone: string | null; timeFormat: TimeFormat }>(
+    '/api/account/preferences',
+    { method: 'PATCH', body: JSON.stringify(input) },
+  );
+
+export type { AppNotification };

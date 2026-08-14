@@ -3,6 +3,9 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import type {
   AuditStats,
+  DocumentPage,
+  NotificationsResponse,
+  SupportRequestsResponse,
   PermissionDef,
   TeamMembersResponse,
   TeamSummary,
@@ -117,6 +120,19 @@ export function getTeams(): Promise<{ data: TeamSummary[] }> {
 
 export function getTeamMembers(id: string): Promise<TeamMembersResponse> {
   return serverFetch<TeamMembersResponse>(`/api/teams/${id}/members?limit=100`);
+}
+
+export function getDocumentPage(kind: 'docs' | 'support'): Promise<DocumentPage> {
+  return serverFetch<DocumentPage>(`/api/documents/${kind}`);
+}
+
+export function getSupportRequests(status?: string): Promise<SupportRequestsResponse> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return serverFetch<SupportRequestsResponse>(`/api/support/requests${qs}`);
+}
+
+export function getNotifications(limit = 10): Promise<NotificationsResponse> {
+  return serverFetch<NotificationsResponse>(`/api/notifications?limit=${limit}`);
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {

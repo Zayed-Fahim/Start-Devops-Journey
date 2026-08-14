@@ -8,7 +8,7 @@ import { ErrorState } from '@/components/ErrorState';
 import { AddUserButton } from '@/components/AddUserButton';
 import { AppShell } from '@/components/AppShell';
 import { ApiFetchError, getUsers, getUserStats, getSessionUser } from '@/lib/api-server';
-import type { UserQuery, UsersResponse } from '@/lib/types';
+import type { SessionUser, UserQuery, UsersResponse } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,10 +16,12 @@ async function UsersSection({
   query,
   canManage,
   roles,
+  viewer,
 }: {
   query: UserQuery;
   canManage: boolean;
   roles: string[];
+  viewer: SessionUser;
 }) {
   const isFiltered = Boolean(query.search || query.role || query.status);
 
@@ -45,6 +47,7 @@ async function UsersSection({
       isFiltered={isFiltered}
       canManage={canManage}
       roles={roles}
+      viewer={viewer}
     />
   );
 }
@@ -90,7 +93,7 @@ export default async function DashboardPage({
       </Suspense>
 
       <Suspense key={suspenseKey} fallback={<TableSkeleton rows={10} />}>
-        <UsersSection query={query} canManage={canManage} roles={roles} />
+        <UsersSection query={query} canManage={canManage} roles={roles} viewer={sessionUser} />
       </Suspense>
     </AppShell>
   );

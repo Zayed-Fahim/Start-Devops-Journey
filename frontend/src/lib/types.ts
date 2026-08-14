@@ -19,9 +19,58 @@ export interface NavItem {
   external?: boolean;
 }
 
+export type TimeFormat = 'H12' | 'H24';
+
+export interface DocumentPage {
+  id: string;
+  kind: 'DOCS' | 'SUPPORT';
+  slug: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  updatedBy: { id: string; name: string } | null;
+  canEdit: boolean;
+}
+
+export interface SupportRequest {
+  id: string;
+  subject: string;
+  body: string;
+  status: 'OPEN' | 'CLOSED';
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: { id: string; name: string; email: string };
+  resolvedBy: { id: string; name: string } | null;
+}
+
+export interface SupportRequestsResponse {
+  data: SupportRequest[];
+  meta: PageMeta & { open: number; manages: boolean };
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  body: string | null;
+  href: string | null;
+  category: AuditCategory;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationsResponse {
+  data: AppNotification[];
+  meta: PageMeta & { unread: number; hasMore: boolean };
+}
+
 export interface SessionUser extends User {
   permissions: string[];
   navigation: NavItem[];
+  country: string | null;
+  timezone: string | null;
+  timeFormat: TimeFormat;
 }
 
 export interface PageMeta {

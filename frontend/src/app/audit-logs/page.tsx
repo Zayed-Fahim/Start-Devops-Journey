@@ -8,13 +8,13 @@ import { LoadMore } from '@/components/LoadMore';
 import { ErrorState } from '@/components/ErrorState';
 import { TableSkeleton } from '@/components/Skeletons';
 import { ApiFetchError, getAuditLogs, getSessionUser } from '@/lib/api-server';
-import type { AuditQuery, AuditLogsResponse } from '@/lib/types';
+import type { SessionUser, AuditQuery, AuditLogsResponse } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = { title: 'Audit Logs · User Management' };
 
-async function TimelineSection({ query }: { query: AuditQuery }) {
+async function TimelineSection({ query, viewer }: { query: AuditQuery; viewer: SessionUser }) {
   let result: AuditLogsResponse | null = null;
   let failure: string | null = null;
 
@@ -37,7 +37,7 @@ async function TimelineSection({ query }: { query: AuditQuery }) {
 
   return (
     <div className="space-y-4">
-      <AuditTimeline entries={result.data} meta={result.meta} />
+      <AuditTimeline entries={result.data} meta={result.meta} viewer={viewer} />
       <LoadMore meta={result.meta} />
     </div>
   );
@@ -71,7 +71,7 @@ export default async function AuditLogsPage({
       </Suspense>
 
       <Suspense key={suspenseKey} fallback={<TableSkeleton rows={8} />}>
-        <TimelineSection query={query} />
+        <TimelineSection query={query} viewer={sessionUser} />
       </Suspense>
     </AppShell>
   );

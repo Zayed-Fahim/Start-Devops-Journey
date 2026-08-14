@@ -3,8 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ApiError, revokeOtherSessions, revokeSession } from '@/lib/api-browser';
-import type { SessionSummary } from '@/lib/types';
-import { formatDate } from '@/lib/utils';
+import type { SessionSummary, SessionUser } from '@/lib/types';
+import { formatDateTime } from '@/lib/datetime';
 
 const timeFormatter = new Intl.DateTimeFormat('en-GB', {
   hour: '2-digit',
@@ -13,7 +13,13 @@ const timeFormatter = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'UTC',
 });
 
-export function SessionsCard({ sessions }: { sessions: SessionSummary[] }) {
+export function SessionsCard({
+  sessions,
+  viewer,
+}: {
+  sessions: SessionSummary[];
+  viewer: SessionUser;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +103,7 @@ export function SessionsCard({ sessions }: { sessions: SessionSummary[] }) {
                 <span>{session.ip ?? 'unknown ip'}</span>
                 <span aria-hidden="true">·</span>
                 <time dateTime={session.lastUsedAt}>
-                  {formatDate(session.lastUsedAt)}{' '}
+                  {formatDateTime(session.lastUsedAt, viewer)}{' '}
                   {timeFormatter.format(new Date(session.lastUsedAt))}
                 </time>
               </p>

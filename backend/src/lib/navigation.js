@@ -50,19 +50,17 @@ const NAV_ITEMS = Object.freeze([
   {
     key: 'support',
     label: 'Support',
-    href: 'https://github.com/Zayed-Fahim/Start-Devops-Journey/issues',
+    href: '/support',
     icon: 'help',
     group: 'support',
-    external: true,
     permission: null,
   },
   {
     key: 'docs',
     label: 'Docs',
-    href: 'https://github.com/Zayed-Fahim/Start-Devops-Journey#readme',
+    href: '/docs',
     icon: 'docs',
     group: 'support',
-    external: true,
     permission: null,
   },
 ]);

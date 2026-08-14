@@ -3,12 +3,13 @@ import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { AppShell } from '@/components/AppShell';
 import { ChangePasswordCard } from '@/components/ChangePasswordCard';
+import { PreferencesCard } from '@/components/PreferencesCard';
 import { SessionsCard } from '@/components/SessionsCard';
 import { ErrorState } from '@/components/ErrorState';
 import { RoleBadge, StatusBadge } from '@/components/Badges';
 import { getSessionUser, getSessions } from '@/lib/api-server';
 import type { SessionSummary, SessionUser } from '@/lib/types';
-import { formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,14 +47,14 @@ function ProfileCard({ user }: { user: SessionUser }) {
         </div>
         <div>
           <dt className="text-label-sm uppercase tracking-wider text-fg-muted">Member since</dt>
-          <dd className="mt-1 text-sm tabular-nums">{formatDate(user.createdAt)}</dd>
+          <dd className="mt-1 text-sm tabular-nums">{formatDate(user.createdAt, user)}</dd>
         </div>
       </dl>
     </section>
   );
 }
 
-async function SessionsSection() {
+async function SessionsSection({ viewer }: { viewer: SessionUser }) {
   let sessions: SessionSummary[] | null = null;
   let failure: string | null = null;
 
@@ -67,7 +68,7 @@ async function SessionsSection() {
     return <ErrorState title="Could not load sessions" message={failure ?? 'Unknown error.'} />;
   }
 
-  return <SessionsCard sessions={sessions} />;
+  return <SessionsCard sessions={sessions} viewer={viewer} />;
 }
 
 export default async function SettingsPage() {
@@ -84,10 +85,12 @@ export default async function SettingsPage() {
       </div>
 
       <ProfileCard user={sessionUser} />
+      <PreferencesCard user={sessionUser} />
+
       <ChangePasswordCard />
 
       <Suspense fallback={<div className="h-40 rounded-lg border border-border bg-surface/40" />}>
-        <SessionsSection />
+        <SessionsSection viewer={sessionUser} />
       </Suspense>
     </AppShell>
   );

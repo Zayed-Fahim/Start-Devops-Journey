@@ -14,7 +14,7 @@ import {
   getUserStats,
 } from '@/lib/api-server';
 import type { AuditLog, AuditStats, TeamSummary, UserStats } from '@/lib/types';
-import { formatDate } from '@/lib/utils';
+import { formatDateTime } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
 
@@ -164,7 +164,7 @@ export default async function OverviewPage() {
                       <span className="text-fg-muted">{entry.summary}</span>
                     </p>
                     <p className="mt-0.5 font-mono text-label-sm text-fg-muted">
-                      {entry.action} · {formatDate(entry.createdAt)}
+                      {entry.action} · {formatDateTime(entry.createdAt, sessionUser)}
                     </p>
                   </li>
                 ))}

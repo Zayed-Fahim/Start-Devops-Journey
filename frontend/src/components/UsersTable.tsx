@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryParams } from '@/lib/useQueryParams';
-import type { SortableColumn, User, UsersResponse } from '@/lib/types';
-import { cn, formatDate, initials } from '@/lib/utils';
+import type { SessionUser, SortableColumn, User, UsersResponse } from '@/lib/types';
+import { cn, initials } from '@/lib/utils';
+import { formatDate } from '@/lib/datetime';
 import { RoleBadge, StatusBadge } from './Badges';
 import { EmptyState } from './EmptyState';
 import { Pagination } from './Pagination';
@@ -199,12 +200,14 @@ export function UsersTable({
   isFiltered,
   canManage,
   roles,
+  viewer,
 }: {
   users: UsersResponse['data'];
   meta: UsersResponse['meta'];
   isFiltered: boolean;
   canManage: boolean;
   roles: string[];
+  viewer: SessionUser;
 }) {
   const { searchParams, setParams } = useQueryParams();
   const [editing, setEditing] = useState<User | null>(null);
@@ -288,7 +291,7 @@ export function UsersTable({
                     <StatusBadge status={user.status} />
                   </td>
                   <td className="hidden px-4 py-3 tabular-nums text-fg-muted lg:table-cell">
-                    <time dateTime={user.createdAt}>{formatDate(user.createdAt)}</time>
+                    <time dateTime={user.createdAt}>{formatDate(user.createdAt, viewer)}</time>
                   </td>
                   {canManage && (
                     <td className="px-4 py-3">

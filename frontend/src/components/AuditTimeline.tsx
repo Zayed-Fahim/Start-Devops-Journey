@@ -1,4 +1,5 @@
-import type { AuditCategory, AuditLog, PageMeta } from '@/lib/types';
+import type { AuditCategory, AuditLog, PageMeta, SessionUser } from '@/lib/types';
+import { formatDate, formatTime } from '@/lib/datetime';
 import { cn, initials } from '@/lib/utils';
 
 const CATEGORY_STYLES: Record<AuditCategory, string> = {
@@ -7,20 +8,6 @@ const CATEGORY_STYLES: Record<AuditCategory, string> = {
   DELETE: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
   SECURITY: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
 };
-
-const timeFormatter = new Intl.DateTimeFormat('en-GB', {
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-  timeZone: 'UTC',
-});
-
-const dateFormatter = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
 
 function CategoryBadge({ category }: { category: AuditCategory }) {
   return (
@@ -57,7 +44,15 @@ function EmptyTimeline() {
   );
 }
 
-export function AuditTimeline({ entries, meta }: { entries: AuditLog[]; meta: PageMeta }) {
+export function AuditTimeline({
+  entries,
+  meta,
+  viewer,
+}: {
+  entries: AuditLog[];
+  meta: PageMeta;
+  viewer: SessionUser;
+}) {
   if (entries.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-surface">
@@ -69,48 +64,45 @@ export function AuditTimeline({ entries, meta }: { entries: AuditLog[]; meta: Pa
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-surface">
       <ol className="divide-y divide-border">
-        {entries.map((entry) => {
-          const at = new Date(entry.createdAt);
-          return (
-            <li key={entry.id} className="flex items-start gap-4 px-4 py-4 hover:bg-surface/60">
-              <span
-                aria-hidden="true"
-                className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-surface text-xs font-semibold text-fg-muted"
-              >
-                {initials(entry.actorLabel)}
-              </span>
+        {entries.map((entry) => (
+          <li key={entry.id} className="flex items-start gap-4 px-4 py-4 hover:bg-surface/60">
+            <span
+              aria-hidden="true"
+              className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-surface text-xs font-semibold text-fg-muted"
+            >
+              {initials(entry.actorLabel)}
+            </span>
 
-              <div className="w-28 shrink-0 font-mono text-xs leading-5 tabular-nums text-fg-muted">
-                <div className="text-fg">{timeFormatter.format(at)}</div>
-                <time dateTime={entry.createdAt}>{dateFormatter.format(at)}</time>
-              </div>
+            <div className="w-28 shrink-0 font-mono text-xs leading-5 tabular-nums text-fg-muted">
+              <div className="text-fg">{formatTime(entry.createdAt, viewer)}</div>
+              <time dateTime={entry.createdAt}>{formatDate(entry.createdAt, viewer)}</time>
+            </div>
 
-              <div className="min-w-0 flex-1">
-                <p className="text-sm leading-6">
-                  <span className="font-medium text-accent">{entry.actorLabel}</span>{' '}
-                  <span className="text-fg">{entry.summary}</span>
-                </p>
-                <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-label-sm text-fg-muted">
-                  <span className="font-mono">{entry.action}</span>
-                  {entry.targetLabel && (
-                    <>
-                      <span aria-hidden="true">·</span>
-                      <span className="font-mono">{entry.targetLabel}</span>
-                    </>
-                  )}
-                  {entry.ip && (
-                    <>
-                      <span aria-hidden="true">·</span>
-                      <span className="font-mono">{entry.ip}</span>
-                    </>
-                  )}
-                </p>
-              </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm leading-6">
+                <span className="font-medium text-accent">{entry.actorLabel}</span>{' '}
+                <span className="text-fg">{entry.summary}</span>
+              </p>
+              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-label-sm text-fg-muted">
+                <span className="font-mono">{entry.action}</span>
+                {entry.targetLabel && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="font-mono">{entry.targetLabel}</span>
+                  </>
+                )}
+                {entry.ip && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="font-mono">{entry.ip}</span>
+                  </>
+                )}
+              </p>
+            </div>
 
-              <CategoryBadge category={entry.category} />
-            </li>
-          );
-        })}
+            <CategoryBadge category={entry.category} />
+          </li>
+        ))}
       </ol>
 
       <div className="border-t border-border px-4 py-3 text-body-sm text-fg-muted tabular-nums">
