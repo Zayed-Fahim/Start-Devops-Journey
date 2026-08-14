@@ -2,20 +2,22 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { User } from '@/lib/types';
+import type { SessionUser } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from './ThemeToggle';
 import { UserMenu } from './UserMenu';
 
-const LINKS: { href: string; label: string; adminOnly: boolean }[] = [
-  { href: '/', label: 'Users', adminOnly: false },
-  { href: '/audit-logs', label: 'Audit Logs', adminOnly: true },
-  { href: '/settings', label: 'Settings', adminOnly: false },
+const LINKS: { href: string; label: string; permission?: string }[] = [
+  { href: '/', label: 'Users', permission: 'users.read' },
+  { href: '/audit-logs', label: 'Audit Logs', permission: 'audit.read' },
+  { href: '/permissions', label: 'Permissions', permission: 'roles.read' },
+  { href: '/settings', label: 'Settings' },
 ];
 
-export function TopNav({ user }: { user: User }) {
+export function TopNav({ user }: { user: SessionUser }) {
   const pathname = usePathname();
-  const links = LINKS.filter((link) => !link.adminOnly || user.role === 'ADMIN');
+  const granted = user.permissions ?? [];
+  const links = LINKS.filter((link) => !link.permission || granted.includes(link.permission));
 
   return (
     <header className="border-b border-border">

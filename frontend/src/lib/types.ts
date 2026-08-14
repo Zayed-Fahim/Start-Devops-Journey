@@ -11,6 +11,10 @@ export interface User {
   createdAt: string;
   updatedAt: string;
 }
+export interface SessionUser extends User {
+  permissions: string[];
+}
+
 export interface PageMeta {
   page: number;
   limit: number;
@@ -73,6 +77,26 @@ export interface AuditQuery {
   search?: string;
   category?: string;
   range?: string;
+}
+
+export interface PermissionDef {
+  id: string;
+  key: string;
+  label: string;
+  description: string | null;
+  group: string;
+  sortOrder: number;
+}
+
+export interface RoleSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  isSystem: boolean;
+  userCount: number;
+  permissions: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SessionSummary {

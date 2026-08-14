@@ -50,7 +50,7 @@ export default async function AuditLogsPage({
 }) {
   const sessionUser = await getSessionUser();
   if (!sessionUser) redirect('/login');
-  if (sessionUser.role !== 'ADMIN') redirect('/');
+  if (!sessionUser.permissions?.includes('audit.read')) redirect('/');
 
   const query = await searchParams;
   const suspenseKey = new URLSearchParams(

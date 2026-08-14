@@ -134,3 +134,17 @@ export const revokeSession = (id: string) =>
 
 export const revokeOtherSessions = () =>
   request<{ revoked: number }>('/api/account/sessions/revoke-others', { method: 'POST' });
+
+export interface RoleInput {
+  name?: string;
+  description?: string;
+  permissions?: string[];
+}
+
+export const createRole = (input: RoleInput) =>
+  request<unknown>('/api/roles', { method: 'POST', body: JSON.stringify(input) });
+
+export const updateRole = (id: string, input: RoleInput) =>
+  request<unknown>(`/api/roles/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+
+export const deleteRole = (id: string) => request<void>(`/api/roles/${id}`, { method: 'DELETE' });

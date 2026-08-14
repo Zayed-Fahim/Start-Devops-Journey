@@ -48,7 +48,10 @@ export default async function DashboardPage({
   const sessionUser = await getSessionUser();
   if (!sessionUser) redirect('/login');
 
-  const canManage = sessionUser.role === 'ADMIN';
+  const granted = sessionUser.permissions ?? [];
+  const canManage = ['users.create', 'users.update', 'users.delete'].some((key) =>
+    granted.includes(key),
+  );
   const query = await searchParams;
   const suspenseKey = new URLSearchParams(
     Object.entries(query).filter(([, value]) => value !== undefined) as [string, string][],

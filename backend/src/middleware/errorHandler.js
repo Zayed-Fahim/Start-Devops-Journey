@@ -22,10 +22,15 @@ const errorHandler = (err, req, res, next) => {
   if (err.type === 'entity.too.large') {
     return send(413, 'PAYLOAD_TOO_LARGE', 'Request body is too large');
   }
-  if (err.name === 'PrismaClientInitializationError' || err.name === 'PrismaClientRustPanicError') {
+  const unreachableByName =
+    err.name === 'PrismaClientInitializationError' || err.name === 'PrismaClientRustPanicError';
+  const unreachableByCode = ['P1000', 'P1001', 'P1002', 'P1008', 'P1017'].includes(err.code);
+
+  if (unreachableByName || unreachableByCode) {
     logger.error({ err, reqId: req.id }, 'database unreachable');
     return send(503, 'DATABASE_UNAVAILABLE', 'Database is unavailable');
   }
+
   switch (err.code) {
     case 'P2002': {
       const target = Array.isArray(err.meta?.target)

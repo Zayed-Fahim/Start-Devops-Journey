@@ -4,9 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { logout } from '@/lib/api-browser';
 import { initials } from '@/lib/utils';
-import type { User } from '@/lib/types';
+import type { SessionUser } from '@/lib/types';
 
-export function UserMenu({ user }: { user: User }) {
+export function UserMenu({ user }: { user: SessionUser }) {
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
 

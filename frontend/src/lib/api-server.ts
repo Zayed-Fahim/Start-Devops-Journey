@@ -1,11 +1,13 @@
 import 'server-only';
 import { cookies } from 'next/headers';
 import type {
+  PermissionDef,
+  RoleSummary,
   SessionSummary,
   UserQuery,
   UserStats,
   UsersResponse,
-  User,
+  SessionUser,
   AuditQuery,
   AuditLogsResponse,
 } from './types';
@@ -93,9 +95,17 @@ export function getSessions(): Promise<{ data: SessionSummary[] }> {
   return serverFetch<{ data: SessionSummary[] }>('/api/account/sessions');
 }
 
-export async function getSessionUser(): Promise<User | null> {
+export function getRoles(): Promise<{ data: RoleSummary[] }> {
+  return serverFetch<{ data: RoleSummary[] }>('/api/roles');
+}
+
+export function getPermissionCatalogue(): Promise<{ data: PermissionDef[] }> {
+  return serverFetch<{ data: PermissionDef[] }>('/api/roles/permissions');
+}
+
+export async function getSessionUser(): Promise<SessionUser | null> {
   try {
-    return await serverFetch<User>('/api/auth/me');
+    return await serverFetch<SessionUser>('/api/auth/me');
   } catch {
     return null;
   }

@@ -7,14 +7,14 @@ import { SessionsCard } from '@/components/SessionsCard';
 import { ErrorState } from '@/components/ErrorState';
 import { RoleBadge, StatusBadge } from '@/components/Badges';
 import { getSessionUser, getSessions } from '@/lib/api-server';
-import type { SessionSummary, User } from '@/lib/types';
+import type { SessionSummary, SessionUser } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = { title: 'Settings · User Management' };
 
-function ProfileCard({ user }: { user: User }) {
+function ProfileCard({ user }: { user: SessionUser }) {
   return (
     <section className="rounded-xl border border-border">
       <div className="border-b border-border px-6 py-4">
