@@ -10,8 +10,17 @@ export interface User {
   createdAt: string;
   updatedAt: string;
 }
+export interface NavItem {
+  key: string;
+  label: string;
+  href: string;
+  icon: string;
+  group: 'primary' | 'secondary';
+}
+
 export interface SessionUser extends User {
   permissions: string[];
+  navigation: NavItem[];
 }
 
 export interface PageMeta {

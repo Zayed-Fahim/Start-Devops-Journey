@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import { TopNav } from '@/components/TopNav';
+import { AppShell } from '@/components/AppShell';
 import { PermissionsMatrix } from '@/components/PermissionsMatrix';
 import { ErrorState } from '@/components/ErrorState';
 import { getPermissionCatalogue, getRoles, getSessionUser } from '@/lib/api-server';
@@ -31,28 +31,24 @@ export default async function PermissionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg text-fg">
-      <TopNav user={sessionUser} />
+    <AppShell user={sessionUser}>
+      <div>
+        <h1 className="text-headline-lg">Permissions</h1>
+        <p className="mt-xs text-body-md text-fg-muted">
+          What each role can do. Changes take effect on the next request for everyone holding that
+          role.
+        </p>
+      </div>
 
-      <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Permissions</h1>
-          <p className="mt-1 text-sm text-fg-muted">
-            What each role can do. Changes take effect on the next request for everyone holding that
-            role.
-          </p>
-        </div>
-
-        {!roles || !permissions ? (
-          <ErrorState title="Could not load permissions" message={failure ?? 'Unknown error.'} />
-        ) : (
-          <PermissionsMatrix
-            roles={roles}
-            permissions={permissions}
-            canManage={sessionUser.permissions.includes('roles.manage')}
-          />
-        )}
-      </main>
-    </div>
+      {!roles || !permissions ? (
+        <ErrorState title="Could not load permissions" message={failure ?? 'Unknown error.'} />
+      ) : (
+        <PermissionsMatrix
+          roles={roles}
+          permissions={permissions}
+          canManage={sessionUser.permissions.includes('roles.manage')}
+        />
+      )}
+    </AppShell>
   );
 }

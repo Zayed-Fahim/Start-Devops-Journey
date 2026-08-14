@@ -1,69 +1,71 @@
 import { getUserStats } from '@/lib/api-server';
 import type { UserStats } from '@/lib/types';
 import { roleTone } from './Badges';
+import { IconBolt, IconCode, IconShield, IconUsers } from './NavIcons';
 
 function StatCard({
   label,
   value,
+  detail,
   accent,
   icon,
 }: {
   label: string;
   value: number;
+  detail: string;
   accent: string;
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-6">
-      <div className="flex items-start justify-between gap-3">
-        <p className="truncate text-sm uppercase tracking-wide text-fg-muted">{label}</p>
-        <span className={accent} aria-hidden="true">
+    <div className="rounded-lg border border-border bg-surface p-md transition-colors hover:border-border-strong">
+      <div className="flex items-start justify-between gap-sm">
+        <div className="min-w-0">
+          <p className="truncate text-label-sm uppercase tracking-wider text-fg-muted">{label}</p>
+          <p className="mt-xs text-display tabular-nums">{value}</p>
+        </div>
+        <span className={`rounded-md border border-border bg-bg p-xs ${accent}`} aria-hidden="true">
           {icon}
         </span>
       </div>
-
-      <p className="mt-2 text-3xl font-bold tabular-nums">{value}</p>
+      <p className="mt-sm text-label-sm text-fg-muted">{detail}</p>
     </div>
   );
 }
-const IconUsers = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeLinecap="round" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" strokeLinecap="round" />
-  </svg>
-);
-const IconCheck = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
-    <circle cx="12" cy="12" r="9" />
-    <path d="m8.5 12.5 2.5 2.5 4.5-5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-const IconShield = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
-    <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" strokeLinejoin="round" />
-  </svg>
-);
+
 const ROLE_CARDS = 2;
+const ROLE_ICONS = [IconShield, IconCode];
+
 export function StatCardsView({ stats }: { stats: UserStats }) {
   const topRoles = stats.roles.slice(0, ROLE_CARDS);
+  const share = (count: number) =>
+    stats.total === 0
+      ? '0% of all users'
+      : `${Math.round((count / stats.total) * 100)}% of all users`;
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <StatCard label="Total users" value={stats.total} accent="text-fg-muted" icon={IconUsers} />
+    <div className="grid grid-cols-1 gap-md sm:grid-cols-2 lg:grid-cols-4">
+      <StatCard
+        label="Total users"
+        value={stats.total}
+        detail={`Across ${stats.roles.length} role${stats.roles.length === 1 ? '' : 's'}`}
+        accent="text-accent"
+        icon={IconUsers}
+      />
       <StatCard
         label="Active"
         value={stats.byStatus.ACTIVE}
-        accent="text-emerald-500"
-        icon={IconCheck}
+        detail={share(stats.byStatus.ACTIVE)}
+        accent="text-success"
+        icon={IconBolt}
       />
-      {topRoles.map((name) => (
+      {topRoles.map((name, index) => (
         <StatCard
           key={name}
           label={name}
           value={stats.byRole[name] ?? 0}
+          detail={share(stats.byRole[name] ?? 0)}
           accent={roleTone(name).accent}
-          icon={IconShield}
+          icon={ROLE_ICONS[index] ?? IconShield}
         />
       ))}
     </div>

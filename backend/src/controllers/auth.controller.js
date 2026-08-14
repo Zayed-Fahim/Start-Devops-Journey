@@ -4,6 +4,7 @@ const { registerSchema, loginSchema } = require('../validation/auth.validation')
 const { setAuthCookies, clearAuthCookies, REFRESH_COOKIE } = require('../lib/cookies');
 const { HttpError } = require('../lib/httpError');
 const { loadUserPermissions } = require('../middleware/requirePermission');
+const { buildNavigation } = require('../lib/navigation');
 
 const requestContext = (req) => ({
   userAgent: req.get('user-agent') ?? undefined,
@@ -46,7 +47,7 @@ const me = async (req, res) => {
   const user = await authService.getSessionUser(req.user.id);
   if (!user) throw new HttpError(401, 'NOT_AUTHENTICATED', 'Authentication required');
   const permissions = await loadUserPermissions(req.user.id);
-  res.status(200).json({ ...user, permissions });
+  res.status(200).json({ ...user, permissions, navigation: buildNavigation(permissions) });
 };
 
 module.exports = { register, login, refresh, logout, me };

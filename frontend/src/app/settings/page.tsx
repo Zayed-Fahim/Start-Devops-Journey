@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import { TopNav } from '@/components/TopNav';
+import { AppShell } from '@/components/AppShell';
 import { ChangePasswordCard } from '@/components/ChangePasswordCard';
 import { SessionsCard } from '@/components/SessionsCard';
 import { ErrorState } from '@/components/ErrorState';
@@ -75,24 +75,20 @@ export default async function SettingsPage() {
   if (!sessionUser) redirect('/login');
 
   return (
-    <div className="min-h-screen bg-bg text-fg">
-      <TopNav user={sessionUser} />
+    <AppShell user={sessionUser}>
+      <div>
+        <h1 className="text-headline-lg">Settings</h1>
+        <p className="mt-xs text-body-md text-fg-muted">
+          Manage your account security and signed-in devices.
+        </p>
+      </div>
 
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Settings</h1>
-          <p className="mt-1 text-sm text-fg-muted">
-            Manage your account security and signed-in devices.
-          </p>
-        </div>
+      <ProfileCard user={sessionUser} />
+      <ChangePasswordCard />
 
-        <ProfileCard user={sessionUser} />
-        <ChangePasswordCard />
-
-        <Suspense fallback={<div className="h-40 rounded-xl border border-border bg-surface/40" />}>
-          <SessionsSection />
-        </Suspense>
-      </main>
-    </div>
+      <Suspense fallback={<div className="h-40 rounded-xl border border-border bg-surface/40" />}>
+        <SessionsSection />
+      </Suspense>
+    </AppShell>
   );
 }

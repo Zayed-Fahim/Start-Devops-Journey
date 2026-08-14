@@ -6,7 +6,7 @@ import { FilterBar } from '@/components/FilterBar';
 import { UsersTable } from '@/components/UsersTable';
 import { ErrorState } from '@/components/ErrorState';
 import { AddUserButton } from '@/components/AddUserButton';
-import { TopNav } from '@/components/TopNav';
+import { AppShell } from '@/components/AppShell';
 import { ApiFetchError, getUsers, getUserStats, getSessionUser } from '@/lib/api-server';
 import type { UserQuery, UsersResponse } from '@/lib/types';
 
@@ -70,32 +70,28 @@ export default async function DashboardPage({
   ).toString();
 
   return (
-    <div className="min-h-screen bg-bg text-fg">
-      <TopNav user={sessionUser} />
-
-      <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Users</h1>
-            <p className="mt-1 text-sm text-fg-muted">
-              Manage your team members and their account status
-            </p>
-          </div>
-          {canManage && <AddUserButton roles={roles} />}
+    <AppShell user={sessionUser}>
+      <div className="flex flex-col gap-md sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-headline-lg">User Management</h1>
+          <p className="mt-xs text-body-md text-fg-muted">
+            Manage system access and roles across the organization.
+          </p>
         </div>
+        {canManage && <AddUserButton roles={roles} />}
+      </div>
 
-        <Suspense fallback={<StatCardsSkeleton />}>
-          <StatCards />
-        </Suspense>
+      <Suspense fallback={<StatCardsSkeleton />}>
+        <StatCards />
+      </Suspense>
 
-        <Suspense fallback={<div className="h-10" />}>
-          <FilterBar roles={roles} />
-        </Suspense>
+      <Suspense fallback={<div className="h-10" />}>
+        <FilterBar roles={roles} />
+      </Suspense>
 
-        <Suspense key={suspenseKey} fallback={<TableSkeleton rows={10} />}>
-          <UsersSection query={query} canManage={canManage} roles={roles} />
-        </Suspense>
-      </main>
-    </div>
+      <Suspense key={suspenseKey} fallback={<TableSkeleton rows={10} />}>
+        <UsersSection query={query} canManage={canManage} roles={roles} />
+      </Suspense>
+    </AppShell>
   );
 }

@@ -54,7 +54,7 @@ function SortableHeader({
       <button
         type="button"
         onClick={() => onSort(column)}
-        className="group inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wider text-fg-muted hover:text-fg"
+        className="group inline-flex items-center gap-1 text-label-sm uppercase tracking-wider text-fg-muted hover:text-fg"
       >
         {label}
         <span
@@ -224,13 +224,19 @@ export function UsersTable({
   }
   return (
     <>
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="overflow-hidden rounded-lg border border-border bg-surface">
+        <div className="flex items-center justify-between border-b border-border bg-surface-raised px-md py-sm">
+          <h2 className="text-headline-md">Directory</h2>
+          <span className="text-label-sm text-fg-muted">
+            {meta.total} user{meta.total === 1 ? '' : 's'}
+          </span>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <caption className="sr-only">
               Users, sorted by {activeSort} {activeOrder === 'asc' ? 'ascending' : 'descending'}
             </caption>
-            <thead className="border-b border-border bg-surface">
+            <thead className="border-b border-border bg-surface-sunken">
               <tr>
                 {COLUMNS.map((column) => (
                   <SortableHeader
@@ -253,7 +259,7 @@ export function UsersTable({
               {users.map((user) => (
                 <tr
                   key={user.id}
-                  className="border-b border-border last:border-b-0 hover:bg-surface/60"
+                  className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-raised/60"
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">

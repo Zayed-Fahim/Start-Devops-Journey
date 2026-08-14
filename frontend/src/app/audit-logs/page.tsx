@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import { TopNav } from '@/components/TopNav';
+import { AppShell } from '@/components/AppShell';
 import { AuditFilterBar } from '@/components/AuditFilterBar';
 import { AuditTimeline } from '@/components/AuditTimeline';
 import { LoadMore } from '@/components/LoadMore';
@@ -58,25 +58,21 @@ export default async function AuditLogsPage({
   ).toString();
 
   return (
-    <div className="min-h-screen bg-bg text-fg">
-      <TopNav user={sessionUser} />
+    <AppShell user={sessionUser}>
+      <div>
+        <h1 className="text-headline-lg">Audit Logs</h1>
+        <p className="mt-xs text-body-md text-fg-muted">
+          A complete history of all user and system actions.
+        </p>
+      </div>
 
-      <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Audit Logs</h1>
-          <p className="mt-1 text-sm text-fg-muted">
-            A complete history of all user and system actions.
-          </p>
-        </div>
+      <Suspense fallback={<div className="h-16" />}>
+        <AuditFilterBar />
+      </Suspense>
 
-        <Suspense fallback={<div className="h-16" />}>
-          <AuditFilterBar />
-        </Suspense>
-
-        <Suspense key={suspenseKey} fallback={<TableSkeleton rows={8} />}>
-          <TimelineSection query={query} />
-        </Suspense>
-      </main>
-    </div>
+      <Suspense key={suspenseKey} fallback={<TableSkeleton rows={8} />}>
+        <TimelineSection query={query} />
+      </Suspense>
+    </AppShell>
   );
 }
