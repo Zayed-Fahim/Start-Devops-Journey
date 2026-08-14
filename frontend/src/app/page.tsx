@@ -71,10 +71,10 @@ export default async function DashboardPage({
 
   return (
     <AppShell user={sessionUser}>
-      <div className="flex flex-col gap-md sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-headline-lg">User Management</h1>
-          <p className="mt-xs text-body-md text-fg-muted">
+          <p className="mt-1 text-body-md text-fg-muted">
             Manage system access and roles across the organization.
           </p>
         </div>

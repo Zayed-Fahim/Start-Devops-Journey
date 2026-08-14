@@ -27,10 +27,10 @@ export function EmptyState({
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
       {IconInbox}
-      <h2 className="text-base font-semibold">
+      <h2 className="text-headline-md">
         {filtered ? 'No users match these filters' : 'No users yet'}
       </h2>
-      <p className="max-w-sm text-sm text-fg-muted">
+      <p className="max-w-sm text-body-sm text-fg-muted">
         {filtered
           ? 'Try a different search term, or clear the filters to see everyone.'
           : 'Create your first user, or run `yarn seed` in the backend to load 25 sample users.'}

@@ -15,7 +15,7 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className="flex flex-col items-center justify-center gap-3 rounded-xl border border-danger/30 bg-danger/5 px-6 py-16 text-center"
+      className="flex flex-col items-center justify-center gap-3 rounded-lg border border-danger/30 bg-danger/5 px-6 py-16 text-center"
     >
       <svg
         viewBox="0 0 24 24"
@@ -30,8 +30,8 @@ export function ErrorState({
         <circle cx="12" cy="16" r="0.75" fill="currentColor" stroke="none" />
       </svg>
 
-      <h2 className="text-base font-semibold">{title}</h2>
-      <p className="max-w-md text-sm text-fg-muted">{message}</p>
+      <h2 className="text-headline-md">{title}</h2>
+      <p className="max-w-md text-body-sm text-fg-muted">{message}</p>
 
       <button
         type="button"

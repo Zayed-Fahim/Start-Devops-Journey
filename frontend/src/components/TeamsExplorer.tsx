@@ -165,7 +165,7 @@ export function TeamsExplorer({
       )}
 
       {teams.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-border px-6 py-16 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-surface px-6 py-16 text-center">
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -178,187 +178,195 @@ export function TeamsExplorer({
             <circle cx="9" cy="7" r="4" />
             <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" strokeLinecap="round" />
           </svg>
-          <h2 className="text-base font-semibold">No teams yet</h2>
-          <p className="max-w-sm text-sm text-fg-muted">
+          <h2 className="text-headline-md">No teams yet</h2>
+          <p className="max-w-sm text-body-sm text-fg-muted">
             Group people into teams to see at a glance who works on what.
           </p>
         </div>
       )}
 
       {teams.length > 0 && (
-        <ul className="overflow-hidden rounded-xl border border-border">
-          {teams.map((team) => {
-            const open = openId === team.id;
-            const rows = members[team.id] ?? [];
-            const taken = memberIdsOf(team.id);
-            const available = users.filter((user) => !taken.has(user.id));
+        <div className="overflow-hidden rounded-lg border border-border bg-surface">
+          <div className="flex items-center justify-between border-b border-border bg-surface-raised px-4 py-2">
+            <h2 className="text-headline-md">All teams</h2>
+            <span className="text-label-sm text-fg-muted">
+              {teams.length} team{teams.length === 1 ? '' : 's'}
+            </span>
+          </div>
+          <ul>
+            {teams.map((team) => {
+              const open = openId === team.id;
+              const rows = members[team.id] ?? [];
+              const taken = memberIdsOf(team.id);
+              const available = users.filter((user) => !taken.has(user.id));
 
-            return (
-              <li key={team.id} className="border-b border-border last:border-b-0">
-                <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-                  <button
-                    type="button"
-                    onClick={() => openTeam(team)}
-                    aria-expanded={open}
-                    aria-controls={`${uid}-${team.id}`}
-                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                  >
-                    <Chevron open={open} />
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium">{team.name}</span>
-                      {team.description && (
-                        <span className="block truncate text-xs text-fg-muted">
-                          {team.description}
-                        </span>
-                      )}
-                    </span>
-                  </button>
-
-                  <span className="text-sm tabular-nums text-fg-muted">
-                    {team.memberCount} member{team.memberCount === 1 ? '' : 's'}
-                  </span>
-
-                  <span className="text-sm text-fg-muted">
-                    {team.lead ? (
-                      <>
-                        Lead: <span className="text-fg">{team.lead.name}</span>
-                      </>
-                    ) : (
-                      'No lead'
-                    )}
-                  </span>
-
-                  {canManage && (
+              return (
+                <li key={team.id} className="border-b border-border last:border-b-0">
+                  <div className="flex flex-wrap items-center gap-3 px-4 py-3">
                     <button
                       type="button"
-                      disabled={busy === team.id}
-                      onClick={() => removeTeam(team)}
-                      className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-danger hover:bg-danger/5 disabled:opacity-60"
+                      onClick={() => openTeam(team)}
+                      aria-expanded={open}
+                      aria-controls={`${uid}-${team.id}`}
+                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
                     >
-                      {busy === team.id ? 'Deleting…' : 'Delete'}
+                      <Chevron open={open} />
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{team.name}</span>
+                        {team.description && (
+                          <span className="block truncate text-label-sm text-fg-muted">
+                            {team.description}
+                          </span>
+                        )}
+                      </span>
                     </button>
-                  )}
-                </div>
 
-                {open && (
-                  <div
-                    id={`${uid}-${team.id}`}
-                    className="border-t border-border bg-surface/40 px-4 py-3"
-                  >
-                    {loadingId === team.id && (
-                      <p className="text-sm text-fg-muted">Loading members…</p>
-                    )}
+                    <span className="text-sm tabular-nums text-fg-muted">
+                      {team.memberCount} member{team.memberCount === 1 ? '' : 's'}
+                    </span>
 
-                    {loadingId !== team.id && rows.length === 0 && (
-                      <p className="text-sm text-fg-muted">This team has no members yet.</p>
-                    )}
-
-                    {rows.length > 0 && (
-                      <ul className="space-y-1">
-                        {rows.map((member) => (
-                          <li
-                            key={member.userId}
-                            className="flex flex-wrap items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-surface"
-                          >
-                            <span
-                              aria-hidden="true"
-                              className="grid size-8 shrink-0 place-items-center rounded-full bg-surface text-xs font-semibold text-fg-muted"
-                            >
-                              {initials(member.name)}
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-medium">
-                                {member.name}
-                                {team.leadUserId === member.userId && (
-                                  <span className="ml-2 text-xs font-normal text-fg-muted">
-                                    team lead
-                                  </span>
-                                )}
-                              </span>
-                              <span className="block truncate font-mono text-xs text-fg-muted">
-                                {member.email}
-                              </span>
-                            </span>
-                            <RoleBadge role={member.role} />
-                            {canManage && (
-                              <>
-                                <button
-                                  type="button"
-                                  disabled={busy === `${team.id}:lead`}
-                                  onClick={() => promote(team, member)}
-                                  className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium hover:bg-surface disabled:opacity-60"
-                                >
-                                  {team.leadUserId === member.userId ? 'Clear lead' : 'Make lead'}
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={busy === `${team.id}:${member.userId}`}
-                                  onClick={() => dropMember(team, member)}
-                                  className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-danger hover:bg-danger/5 disabled:opacity-60"
-                                >
-                                  Remove
-                                </button>
-                              </>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    <span className="text-body-sm text-fg-muted">
+                      {team.lead ? (
+                        <>
+                          Lead: <span className="text-fg">{team.lead.name}</span>
+                        </>
+                      ) : (
+                        'No lead'
+                      )}
+                    </span>
 
                     {canManage && (
-                      <div className="mt-3">
-                        {addingTo === team.id ? (
-                          <div className="flex flex-wrap items-center gap-2">
-                            <label htmlFor={`${uid}-${team.id}-add`} className="sr-only">
-                              Add a member to {team.name}
-                            </label>
-                            <select
-                              id={`${uid}-${team.id}-add`}
-                              defaultValue=""
-                              disabled={busy === `${team.id}:add`}
-                              onChange={(event) => {
-                                if (event.target.value) addMember(team, event.target.value);
-                              }}
-                              className={inputClass}
-                            >
-                              <option value="" disabled>
-                                Choose someone…
-                              </option>
-                              {available.map((user) => (
-                                <option key={user.id} value={user.id}>
-                                  {user.name}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              type="button"
-                              onClick={() => setAddingTo(null)}
-                              className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setAddingTo(team.id)}
-                            className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface"
-                          >
-                            + Add member
-                          </button>
-                        )}
-                      </div>
+                      <button
+                        type="button"
+                        disabled={busy === team.id}
+                        onClick={() => removeTeam(team)}
+                        className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-danger hover:bg-danger/5 disabled:opacity-60"
+                      >
+                        {busy === team.id ? 'Deleting…' : 'Delete'}
+                      </button>
                     )}
                   </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+
+                  {open && (
+                    <div
+                      id={`${uid}-${team.id}`}
+                      className="border-t border-border bg-surface/40 px-4 py-3"
+                    >
+                      {loadingId === team.id && (
+                        <p className="text-body-sm text-fg-muted">Loading members…</p>
+                      )}
+
+                      {loadingId !== team.id && rows.length === 0 && (
+                        <p className="text-body-sm text-fg-muted">This team has no members yet.</p>
+                      )}
+
+                      {rows.length > 0 && (
+                        <ul className="space-y-1">
+                          {rows.map((member) => (
+                            <li
+                              key={member.userId}
+                              className="flex flex-wrap items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-surface"
+                            >
+                              <span
+                                aria-hidden="true"
+                                className="grid size-8 shrink-0 place-items-center rounded-full bg-surface text-xs font-semibold text-fg-muted"
+                              >
+                                {initials(member.name)}
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-sm font-medium">
+                                  {member.name}
+                                  {team.leadUserId === member.userId && (
+                                    <span className="ml-2 text-xs font-normal text-fg-muted">
+                                      team lead
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="block truncate font-mono text-label-sm text-fg-muted">
+                                  {member.email}
+                                </span>
+                              </span>
+                              <RoleBadge role={member.role} />
+                              {canManage && (
+                                <>
+                                  <button
+                                    type="button"
+                                    disabled={busy === `${team.id}:lead`}
+                                    onClick={() => promote(team, member)}
+                                    className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium hover:bg-surface disabled:opacity-60"
+                                  >
+                                    {team.leadUserId === member.userId ? 'Clear lead' : 'Make lead'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={busy === `${team.id}:${member.userId}`}
+                                    onClick={() => dropMember(team, member)}
+                                    className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-danger hover:bg-danger/5 disabled:opacity-60"
+                                  >
+                                    Remove
+                                  </button>
+                                </>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {canManage && (
+                        <div className="mt-3">
+                          {addingTo === team.id ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <label htmlFor={`${uid}-${team.id}-add`} className="sr-only">
+                                Add a member to {team.name}
+                              </label>
+                              <select
+                                id={`${uid}-${team.id}-add`}
+                                defaultValue=""
+                                disabled={busy === `${team.id}:add`}
+                                onChange={(event) => {
+                                  if (event.target.value) addMember(team, event.target.value);
+                                }}
+                                className={inputClass}
+                              >
+                                <option value="" disabled>
+                                  Choose someone…
+                                </option>
+                                {available.map((user) => (
+                                  <option key={user.id} value={user.id}>
+                                    {user.name}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => setAddingTo(null)}
+                                className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setAddingTo(team.id)}
+                              className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface"
+                            >
+                              + Add member
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
 
       {canManage && (
-        <div className="rounded-xl border border-border p-4">
+        <div className="rounded-lg border border-border bg-surface p-4">
           {creating ? (
             <form onSubmit={submitNewTeam} className="flex flex-wrap items-end gap-3">
               <div className="space-y-1.5">
@@ -422,7 +430,7 @@ export function TeamsExplorer({
               New team
             </button>
           )}
-          <p className="mt-3 text-xs text-fg-muted">
+          <p className="mt-3 text-label-sm text-fg-muted">
             A team must be empty before it can be deleted.
           </p>
         </div>

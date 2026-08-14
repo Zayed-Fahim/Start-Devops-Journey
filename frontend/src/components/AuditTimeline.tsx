@@ -49,8 +49,8 @@ function EmptyTimeline() {
         <circle cx="12" cy="12" r="9" />
         <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <h2 className="text-base font-semibold">No activity in this period</h2>
-      <p className="max-w-sm text-sm text-fg-muted">
+      <h2 className="text-headline-md">No activity in this period</h2>
+      <p className="max-w-sm text-body-sm text-fg-muted">
         Nothing matches these filters. Try a wider time range, or clear the filters.
       </p>
     </div>
@@ -60,14 +60,14 @@ function EmptyTimeline() {
 export function AuditTimeline({ entries, meta }: { entries: AuditLog[]; meta: PageMeta }) {
   if (entries.length === 0) {
     return (
-      <div className="rounded-xl border border-border">
+      <div className="rounded-lg border border-border bg-surface">
         <EmptyTimeline />
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border">
+    <div className="overflow-hidden rounded-lg border border-border bg-surface">
       <ol className="divide-y divide-border">
         {entries.map((entry) => {
           const at = new Date(entry.createdAt);
@@ -90,7 +90,7 @@ export function AuditTimeline({ entries, meta }: { entries: AuditLog[]; meta: Pa
                   <span className="font-medium text-accent">{entry.actorLabel}</span>{' '}
                   <span className="text-fg">{entry.summary}</span>
                 </p>
-                <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-fg-muted">
+                <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-label-sm text-fg-muted">
                   <span className="font-mono">{entry.action}</span>
                   {entry.targetLabel && (
                     <>
@@ -113,7 +113,7 @@ export function AuditTimeline({ entries, meta }: { entries: AuditLog[]; meta: Pa
         })}
       </ol>
 
-      <div className="border-t border-border px-4 py-3 text-sm text-fg-muted tabular-nums">
+      <div className="border-t border-border px-4 py-3 text-body-sm text-fg-muted tabular-nums">
         Showing <span className="font-medium text-fg">{entries.length}</span> of{' '}
         <span className="font-medium text-fg">{meta.total}</span> events
       </div>

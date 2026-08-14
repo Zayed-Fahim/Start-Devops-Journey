@@ -61,7 +61,7 @@ export default async function AuditLogsPage({
     <AppShell user={sessionUser}>
       <div>
         <h1 className="text-headline-lg">Audit Logs</h1>
-        <p className="mt-xs text-body-md text-fg-muted">
+        <p className="mt-1 text-body-md text-fg-muted">
           A complete history of all user and system actions.
         </p>
       </div>

@@ -34,7 +34,7 @@ export default async function PermissionsPage() {
     <AppShell user={sessionUser}>
       <div>
         <h1 className="text-headline-lg">Permissions</h1>
-        <p className="mt-xs text-body-md text-fg-muted">
+        <p className="mt-1 text-body-md text-fg-muted">
           What each role can do. Changes take effect on the next request for everyone holding that
           role.
         </p>

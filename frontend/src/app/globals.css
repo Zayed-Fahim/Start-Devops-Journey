@@ -107,14 +107,6 @@
   --text-label-sm--line-height: 1.2;
   --text-label-sm--letter-spacing: 0.03em;
   --text-label-sm--font-weight: 500;
-
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 48px;
-
-  --container-max: 1280px;
 }
 
 body {

@@ -17,17 +17,17 @@ function StatCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-surface p-md transition-colors hover:border-border-strong">
-      <div className="flex items-start justify-between gap-sm">
+    <div className="rounded-lg border border-border bg-surface p-4 transition-colors hover:border-border-strong">
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-label-sm uppercase tracking-wider text-fg-muted">{label}</p>
-          <p className="mt-xs text-display tabular-nums">{value}</p>
+          <p className="mt-1 text-display tabular-nums">{value}</p>
         </div>
-        <span className={`rounded-md border border-border bg-bg p-xs ${accent}`} aria-hidden="true">
+        <span className={`rounded-md border border-border bg-bg p-1 ${accent}`} aria-hidden="true">
           {icon}
         </span>
       </div>
-      <p className="mt-sm text-label-sm text-fg-muted">{detail}</p>
+      <p className="mt-2 text-label-sm text-fg-muted">{detail}</p>
     </div>
   );
 }
@@ -43,7 +43,7 @@ export function StatCardsView({ stats }: { stats: UserStats }) {
       : `${Math.round((count / stats.total) * 100)}% of all users`;
 
   return (
-    <div className="grid grid-cols-1 gap-md sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard
         label="Total users"
         value={stats.total}

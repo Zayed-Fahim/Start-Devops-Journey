@@ -34,11 +34,11 @@ export function SessionsCard({ sessions }: { sessions: SessionSummary[] }) {
   };
 
   return (
-    <section className="rounded-xl border border-border">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
+    <section className="rounded-lg border border-border bg-surface">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-surface-raised px-4 py-2">
         <div>
-          <h2 className="font-semibold">Active sessions</h2>
-          <p className="mt-0.5 text-sm text-fg-muted">
+          <h2 className="text-headline-md">Active sessions</h2>
+          <p className="mt-0.5 text-body-sm text-fg-muted">
             Devices currently signed in to your account.
           </p>
         </div>
@@ -93,7 +93,7 @@ export function SessionsCard({ sessions }: { sessions: SessionSummary[] }) {
                   </span>
                 )}
               </p>
-              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 font-mono text-xs text-fg-muted">
+              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 font-mono text-label-sm text-fg-muted">
                 <span>{session.ip ?? 'unknown ip'}</span>
                 <span aria-hidden="true">·</span>
                 <time dateTime={session.lastUsedAt}>

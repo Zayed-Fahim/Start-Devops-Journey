@@ -24,7 +24,7 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
       href={item.href}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'group relative flex items-center gap-sm rounded-lg py-sm pl-md pr-sm text-label-md transition-all',
+        'group relative flex items-center gap-2 rounded-lg py-2 pl-4 pr-2 text-label-md transition-all',
         active ? 'bg-accent/12 text-fg' : 'text-fg-muted hover:bg-fg/5 hover:text-fg',
       )}
     >
@@ -50,7 +50,7 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 
 function GroupLabel({ children }: { children: ReactNode }) {
   return (
-    <p className="px-md pb-xs pt-sm text-label-sm uppercase tracking-wider text-fg-muted/70">
+    <p className="px-4 pb-1 pt-2 text-label-sm uppercase tracking-wider text-fg-muted/70">
       {children}
     </p>
   );
@@ -66,8 +66,8 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
   return (
     <div className="flex h-screen bg-bg text-fg">
       <div className="z-20 hidden w-64 shrink-0 flex-col border-r border-border bg-gradient-to-b from-surface-raised to-surface md:flex">
-        <div className="border-b border-border/70 p-md">
-          <div className="flex items-center gap-sm">
+        <div className="border-b border-border/70 p-4">
+          <div className="flex items-center gap-2">
             <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-accent/30 bg-accent/10 text-accent">
               {IconCube}
             </span>
@@ -81,7 +81,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
           </div>
         </div>
 
-        <nav aria-label="Sections" className="flex-1 overflow-y-auto p-sm">
+        <nav aria-label="Sections" className="flex-1 overflow-y-auto p-2">
           {primary.length > 0 && <GroupLabel>Manage</GroupLabel>}
           <ul className="space-y-0.5">
             {primary.map((item) => (
@@ -105,7 +105,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
           )}
         </nav>
 
-        <div className="border-t border-border/70 px-md py-sm">
+        <div className="border-t border-border/70 px-4 py-2">
           <p className="text-label-sm text-fg-muted">
             Signed in as <span className="text-fg">{user.name}</span>
           </p>
@@ -114,9 +114,9 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
       </div>
 
       <div className="flex h-screen flex-1 flex-col overflow-hidden">
-        <header className="z-10 flex shrink-0 flex-col border-b border-border bg-surface px-md sm:px-lg">
-          <div className="flex h-16 w-full items-center gap-md">
-            <span className="flex items-center gap-sm md:hidden">
+        <header className="z-10 flex shrink-0 flex-col border-b border-border bg-surface px-4 sm:px-6">
+          <div className="flex h-16 w-full items-center gap-4">
+            <span className="flex items-center gap-2 md:hidden">
               <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-accent/30 bg-accent/10 text-accent">
                 {IconCube}
               </span>
@@ -125,7 +125,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
 
             <TopSearch />
 
-            <div className="ml-auto flex items-center gap-sm">
+            <div className="ml-auto flex items-center gap-2">
               <ThemeToggle />
               <span aria-hidden="true" className="hidden h-6 w-px bg-border sm:block" />
               <UserMenu user={user} />
@@ -134,7 +134,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
 
           <nav
             aria-label="Sections"
-            className="-mx-md flex items-center gap-xs overflow-x-auto px-md pb-sm md:hidden"
+            className="-mx-4 flex items-center gap-1 overflow-x-auto px-4 pb-2 md:hidden"
           >
             {items.map((item) => (
               <Link
@@ -142,7 +142,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
                 href={item.href}
                 aria-current={isActive(item) ? 'page' : undefined}
                 className={cn(
-                  'shrink-0 whitespace-nowrap rounded-lg px-md py-xs text-label-md transition-colors',
+                  'shrink-0 whitespace-nowrap rounded-lg px-4 py-1 text-label-md transition-colors',
                   isActive(item)
                     ? 'bg-accent/12 text-accent'
                     : 'text-fg-muted hover:bg-fg/5 hover:text-fg',
@@ -154,8 +154,8 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
           </nav>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-bg p-md lg:p-lg">
-          <div className="mx-auto max-w-[1280px] space-y-lg">{children}</div>
+        <main className="flex-1 overflow-y-auto bg-bg p-4 lg:p-6">
+          <div className="mx-auto max-w-[1280px] space-y-6">{children}</div>
         </main>
       </div>
     </div>

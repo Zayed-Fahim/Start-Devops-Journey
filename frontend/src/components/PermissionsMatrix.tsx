@@ -283,15 +283,21 @@ export function PermissionsMatrix({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="overflow-hidden rounded-lg border border-border bg-surface">
+        <div className="flex items-center justify-between border-b border-border bg-surface-raised px-4 py-2">
+          <h2 className="text-headline-md">Role matrix</h2>
+          <span className="text-label-sm text-fg-muted">
+            {visibleRoles.length} role{visibleRoles.length === 1 ? '' : 's'}
+          </span>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <caption className="sr-only">Permissions granted to each role</caption>
-            <thead className="border-b border-border bg-surface">
+            <thead className="border-b border-border bg-surface-sunken">
               <tr>
                 <th
                   scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-fg-muted"
+                  className="px-4 py-3 text-left text-label-sm uppercase tracking-wider text-fg-muted"
                 >
                   Permission
                 </th>
@@ -328,7 +334,9 @@ export function PermissionsMatrix({
                     <tr key={permission.key} className="border-b border-border last:border-b-0">
                       <th scope="row" className="px-4 py-3 text-left font-normal">
                         <div className="font-medium">{permission.label}</div>
-                        <div className="font-mono text-xs text-fg-muted">{permission.key}</div>
+                        <div className="font-mono text-label-sm text-fg-muted">
+                          {permission.key}
+                        </div>
                       </th>
                       {visibleRoles.map((role) => {
                         const granted = permissionsOf(role).includes(permission.key);
@@ -377,7 +385,7 @@ export function PermissionsMatrix({
 
         {canManage && (
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
-            <p className="text-sm text-fg-muted">
+            <p className="text-body-sm text-fg-muted">
               Custom roles with no users assigned can be deleted.
             </p>
             <div className="flex flex-wrap gap-2">
@@ -399,12 +407,12 @@ export function PermissionsMatrix({
         )}
       </div>
 
-      <p role="status" aria-live="polite" className="min-h-4 text-xs text-fg-muted">
+      <p role="status" aria-live="polite" className="min-h-4 text-label-sm text-fg-muted">
         {statusLabel}
       </p>
 
       {canManage && (
-        <div className="rounded-xl border border-border p-4">
+        <div className="rounded-lg border border-border bg-surface p-4">
           {creating ? (
             <form onSubmit={submitNewRole} className="flex flex-wrap items-end gap-3">
               <div className="space-y-1.5">
@@ -467,7 +475,7 @@ export function PermissionsMatrix({
               New role
             </button>
           )}
-          <p className="mt-3 text-xs text-fg-muted">
+          <p className="mt-3 text-label-sm text-fg-muted">
             New roles start with View users. Grant the rest from the grid above.
           </p>
         </div>

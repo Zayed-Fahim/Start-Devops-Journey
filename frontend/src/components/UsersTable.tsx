@@ -217,7 +217,7 @@ export function UsersTable({
   };
   if (users.length === 0) {
     return (
-      <div className="rounded-xl border border-border">
+      <div className="rounded-lg border border-border bg-surface">
         <EmptyState filtered={isFiltered} />
       </div>
     );
@@ -225,7 +225,7 @@ export function UsersTable({
   return (
     <>
       <div className="overflow-hidden rounded-lg border border-border bg-surface">
-        <div className="flex items-center justify-between border-b border-border bg-surface-raised px-md py-sm">
+        <div className="flex items-center justify-between border-b border-border bg-surface-raised px-4 py-2">
           <h2 className="text-headline-md">Directory</h2>
           <span className="text-label-sm text-fg-muted">
             {meta.total} user{meta.total === 1 ? '' : 's'}
@@ -272,13 +272,13 @@ export function UsersTable({
                       <div className="min-w-0">
                         <p className="truncate font-medium">{user.name}</p>
 
-                        <p className="truncate font-mono text-xs text-fg-muted md:hidden">
+                        <p className="truncate font-mono text-label-sm text-fg-muted md:hidden">
                           {user.email}
                         </p>
                       </div>
                     </div>
                   </td>
-                  <td className="hidden px-4 py-3 font-mono text-xs text-fg-muted md:table-cell">
+                  <td className="hidden px-4 py-3 font-mono text-label-sm text-fg-muted md:table-cell">
                     {user.email}
                   </td>
                   <td className="px-4 py-3">

@@ -2,7 +2,7 @@ export function StatCardsSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-hidden="true">
       {['total', 'active', 'admins', 'devs'].map((slot) => (
-        <div key={slot} className="rounded-xl border border-border bg-surface p-6">
+        <div key={slot} className="rounded-lg border border-border bg-surface p-6">
           <div className="skeleton h-3 w-20" />
           <div className="skeleton mt-3 h-8 w-14" />
         </div>
@@ -13,7 +13,7 @@ export function StatCardsSkeleton() {
 export function TableSkeleton({ rows = 10 }: { rows?: number }) {
   return (
     <div
-      className="overflow-hidden rounded-xl border border-border"
+      className="overflow-hidden rounded-lg border border-border bg-surface"
       role="status"
       aria-label="Loading users"
     >

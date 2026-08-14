@@ -22,7 +22,7 @@ export function TopSearch() {
       </label>
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute left-sm top-1/2 -translate-y-1/2 text-fg-muted"
+        className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-fg-muted"
       >
         {IconSearch}
       </span>
@@ -32,7 +32,7 @@ export function TopSearch() {
         value={term}
         onChange={(event) => setTerm(event.target.value)}
         placeholder="Search users…"
-        className="h-9 w-56 rounded-lg border border-border bg-bg pl-10 pr-sm text-body-sm text-fg transition-colors placeholder:text-fg-muted focus:border-accent focus:outline-none lg:w-72"
+        className="h-9 w-56 rounded-lg border border-border bg-bg pl-10 pr-2 text-body-sm text-fg transition-colors placeholder:text-fg-muted focus:border-accent focus:outline-none lg:w-72"
       />
     </form>
   );

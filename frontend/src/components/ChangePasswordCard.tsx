@@ -55,10 +55,10 @@ export function ChangePasswordCard() {
   };
 
   return (
-    <section className="rounded-xl border border-border">
-      <div className="border-b border-border px-6 py-4">
-        <h2 className="font-semibold">Password</h2>
-        <p className="mt-0.5 text-sm text-fg-muted">
+    <section className="rounded-lg border border-border bg-surface">
+      <div className="border-b border-border bg-surface-raised px-4 py-2">
+        <h2 className="text-headline-md">Password</h2>
+        <p className="mt-0.5 text-body-sm text-fg-muted">
           Changing your password signs out every other session.
         </p>
       </div>
@@ -124,7 +124,7 @@ export function ChangePasswordCard() {
                 {fieldErrors.newPassword}
               </p>
             ) : (
-              <p id={`${uid}-new-hint`} className="text-sm text-fg-muted">
+              <p id={`${uid}-new-hint`} className="text-body-sm text-fg-muted">
                 6 to 32 characters, with upper case, lower case and a number.
               </p>
             )}

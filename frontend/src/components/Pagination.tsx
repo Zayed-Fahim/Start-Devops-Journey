@@ -36,7 +36,7 @@ export function Pagination({ meta }: { meta: PageMeta }) {
     'grid size-8 place-items-center rounded-lg border border-border text-fg-muted enabled:hover:bg-surface enabled:hover:text-fg disabled:opacity-40';
   return (
     <div className="flex flex-col items-center justify-between gap-3 border-t border-border px-4 py-3 sm:flex-row">
-      <p className="text-sm text-fg-muted tabular-nums" aria-live="polite">
+      <p className="text-body-sm text-fg-muted tabular-nums" aria-live="polite">
         Showing <span className="font-medium text-fg">{from}</span>–
         <span className="font-medium text-fg">{to}</span> of{' '}
         <span className="font-medium text-fg">{total}</span> users

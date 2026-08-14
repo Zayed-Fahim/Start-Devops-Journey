@@ -134,7 +134,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           </p>
         ) : (
           isRegister && (
-            <p id={`${uid}-password-hint`} className="text-sm text-fg-muted">
+            <p id={`${uid}-password-hint`} className="text-body-sm text-fg-muted">
               6 to 32 characters, with upper case, lower case and a number.
             </p>
           )
@@ -149,7 +149,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
         {submitLabel}
       </button>
 
-      <p className="text-center text-sm text-fg-muted">
+      <p className="text-center text-body-sm text-fg-muted">
         {isRegister ? 'Already have an account? ' : 'No account yet? '}
         <Link
           href={isRegister ? '/login' : '/register'}

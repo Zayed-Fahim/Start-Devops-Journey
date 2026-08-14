@@ -41,7 +41,7 @@ function Field({
         </p>
       )}
       {!error && hint && (
-        <p id={`${htmlFor}-hint`} className="text-sm text-fg-muted">
+        <p id={`${htmlFor}-hint`} className="text-body-sm text-fg-muted">
           {hint}
         </p>
       )}

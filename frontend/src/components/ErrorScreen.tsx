@@ -90,7 +90,7 @@ export function ErrorScreen({
         </div>
 
         <div className="mb-8 flex max-w-md flex-col items-center gap-2">
-          <h2 className="text-2xl font-semibold leading-8">{title}</h2>
+          <h2 className="text-headline-lg leading-8">{title}</h2>
           <p className="text-base leading-6 text-fg-muted">{description}</p>
         </div>
 

@@ -16,36 +16,36 @@ export const metadata: Metadata = { title: 'Settings · User Management' };
 
 function ProfileCard({ user }: { user: SessionUser }) {
   return (
-    <section className="rounded-xl border border-border">
-      <div className="border-b border-border px-6 py-4">
-        <h2 className="font-semibold">Profile</h2>
-        <p className="mt-0.5 text-sm text-fg-muted">
+    <section className="rounded-lg border border-border bg-surface">
+      <div className="border-b border-border bg-surface-raised px-4 py-2">
+        <h2 className="text-headline-md">Profile</h2>
+        <p className="mt-0.5 text-body-sm text-fg-muted">
           Your account details. Ask an administrator to change your name, role or status.
         </p>
       </div>
       <dl className="grid gap-x-6 gap-y-4 px-6 py-5 sm:grid-cols-2">
         <div>
-          <dt className="text-xs uppercase tracking-wide text-fg-muted">Name</dt>
+          <dt className="text-label-sm uppercase tracking-wider text-fg-muted">Name</dt>
           <dd className="mt-1 text-sm">{user.name}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-fg-muted">Email</dt>
+          <dt className="text-label-sm uppercase tracking-wider text-fg-muted">Email</dt>
           <dd className="mt-1 font-mono text-sm">{user.email}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-fg-muted">Role</dt>
+          <dt className="text-label-sm uppercase tracking-wider text-fg-muted">Role</dt>
           <dd className="mt-1">
             <RoleBadge role={user.role} />
           </dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-fg-muted">Status</dt>
+          <dt className="text-label-sm uppercase tracking-wider text-fg-muted">Status</dt>
           <dd className="mt-1">
             <StatusBadge status={user.status} />
           </dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-fg-muted">Member since</dt>
+          <dt className="text-label-sm uppercase tracking-wider text-fg-muted">Member since</dt>
           <dd className="mt-1 text-sm tabular-nums">{formatDate(user.createdAt)}</dd>
         </div>
       </dl>
@@ -78,7 +78,7 @@ export default async function SettingsPage() {
     <AppShell user={sessionUser}>
       <div>
         <h1 className="text-headline-lg">Settings</h1>
-        <p className="mt-xs text-body-md text-fg-muted">
+        <p className="mt-1 text-body-md text-fg-muted">
           Manage your account security and signed-in devices.
         </p>
       </div>
@@ -86,7 +86,7 @@ export default async function SettingsPage() {
       <ProfileCard user={sessionUser} />
       <ChangePasswordCard />
 
-      <Suspense fallback={<div className="h-40 rounded-xl border border-border bg-surface/40" />}>
+      <Suspense fallback={<div className="h-40 rounded-lg border border-border bg-surface/40" />}>
         <SessionsSection />
       </Suspense>
     </AppShell>

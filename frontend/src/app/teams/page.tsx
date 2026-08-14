@@ -38,7 +38,7 @@ export default async function TeamsPage() {
     <AppShell user={sessionUser}>
       <div>
         <h1 className="text-headline-lg">Teams</h1>
-        <p className="mt-xs text-body-md text-fg-muted">
+        <p className="mt-1 text-body-md text-fg-muted">
           Group people into teams and name who leads each one.
         </p>
       </div>
