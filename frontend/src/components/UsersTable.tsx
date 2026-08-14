@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useQueryParams } from '@/lib/useQueryParams';
 import type { SortableColumn, User, UsersResponse } from '@/lib/types';
 import { cn, formatDate, initials } from '@/lib/utils';
@@ -21,6 +22,8 @@ const COLUMNS: {
   { key: 'status', label: 'Status', className: 'hidden sm:table-cell' },
   { key: 'createdAt', label: 'Created', className: 'hidden lg:table-cell' },
 ];
+const MENU_GAP = 4;
+
 function sortDirection(isActive: boolean, order: string): 'ascending' | 'descending' | 'none' {
   if (!isActive) return 'none';
   return order === 'asc' ? 'ascending' : 'descending';
@@ -77,12 +80,44 @@ function RowActions({
   onDelete: (user: User) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ top: number; right: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const updatePosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const menuHeight = menuRef.current?.offsetHeight ?? 0;
+    const { clientWidth: viewportWidth, clientHeight: viewportHeight } = document.documentElement;
+    const flipUp =
+      menuHeight > 0 &&
+      rect.bottom + MENU_GAP + menuHeight > viewportHeight &&
+      rect.top - MENU_GAP - menuHeight > 0;
+    const preferredTop = flipUp ? rect.top - MENU_GAP - menuHeight : rect.bottom + MENU_GAP;
+    const maxTop = viewportHeight - menuHeight - MENU_GAP;
+    const top = menuHeight > 0 ? Math.max(MENU_GAP, Math.min(preferredTop, maxTop)) : preferredTop;
+    const right = viewportWidth - rect.right;
+    setPosition((current) =>
+      current && current.top === top && current.right === right ? current : { top, right },
+    );
+  }, []);
+  const attachMenu = useCallback(
+    (node: HTMLDivElement | null) => {
+      menuRef.current = node;
+      if (node) updatePosition();
+    },
+    [updatePosition],
+  );
+  const toggle = () => {
+    if (!open) updatePosition();
+    setOpen((value) => !value);
+  };
   useEffect(() => {
     if (!open) return undefined;
     const onPointerDown = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -92,11 +127,15 @@ function RowActions({
     };
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
     return () => {
       document.removeEventListener('mousedown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
     };
-  }, [open]);
+  }, [open, updatePosition]);
   const itemClass =
     'block w-full px-3 py-2 text-left text-sm hover:bg-surface focus-visible:bg-surface';
   const runAction = (action: (user: User) => void) => {
@@ -105,11 +144,11 @@ function RowActions({
     action(user);
   };
   return (
-    <div ref={containerRef} className="relative flex justify-end">
+    <div className="flex justify-end">
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggle}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`Actions for ${user.name}`}
@@ -122,30 +161,35 @@ function RowActions({
         </svg>
       </button>
 
-      {open && (
-        <div
-          role="menu"
-          aria-label={`Actions for ${user.name}`}
-          className="absolute right-0 top-9 z-20 w-36 overflow-hidden rounded-lg border border-border bg-bg py-1 shadow-lg"
-        >
-          <button
-            role="menuitem"
-            type="button"
-            onClick={() => runAction(onEdit)}
-            className={itemClass}
+      {open &&
+        position &&
+        createPortal(
+          <div
+            ref={attachMenu}
+            role="menu"
+            aria-label={`Actions for ${user.name}`}
+            style={{ top: position.top, right: position.right }}
+            className="fixed z-50 w-36 overflow-hidden rounded-lg border border-border bg-bg py-1 shadow-lg"
           >
-            Edit
-          </button>
-          <button
-            role="menuitem"
-            type="button"
-            onClick={() => runAction(onDelete)}
-            className={cn(itemClass, 'text-danger')}
-          >
-            Delete
-          </button>
-        </div>
-      )}
+            <button
+              role="menuitem"
+              type="button"
+              onClick={() => runAction(onEdit)}
+              className={itemClass}
+            >
+              Edit
+            </button>
+            <button
+              role="menuitem"
+              type="button"
+              onClick={() => runAction(onDelete)}
+              className={cn(itemClass, 'text-danger')}
+            >
+              Delete
+            </button>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
