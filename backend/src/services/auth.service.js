@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const env = require('../lib/env');
 const { HttpError, conflict } = require('../lib/httpError');
+const logger = require('../lib/logger');
 const audit = require('./audit.service');
 const {
   signAccessToken,
@@ -70,7 +71,7 @@ const register = async ({ name, email, password }, context) => {
     actor: user,
     action: audit.AUDIT_ACTIONS.USER_REGISTERED,
     category: 'CREATE',
-    summary: `${user.name} created an account`,
+    summary: 'created an account',
     target: { type: 'user', id: user.id, label: user.email },
     context,
   });
@@ -118,8 +119,8 @@ const login = async ({ email, password }, context) => {
         : audit.AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
       category: 'SECURITY',
       summary: shouldLock
-        ? `${user.name} was locked out after ${env.MAX_FAILED_LOGINS} failed sign-in attempts`
-        : `${user.name} failed a sign-in attempt`,
+        ? `was locked out after ${env.MAX_FAILED_LOGINS} failed sign-in attempts`
+        : 'failed a sign-in attempt',
       target: { type: 'user', id: user.id, label: user.email },
       context,
     });
@@ -141,7 +142,7 @@ const login = async ({ email, password }, context) => {
     actor: updated,
     action: audit.AUDIT_ACTIONS.AUTH_LOGIN,
     category: 'SECURITY',
-    summary: `${updated.name} signed in`,
+    summary: 'signed in',
     target: { type: 'user', id: updated.id, label: updated.email },
     context,
   });
@@ -162,24 +163,46 @@ const rotateRefreshToken = async (presentedToken, context) => {
   if (!stored) throw new HttpError(401, 'INVALID_SESSION', 'Session is no longer valid');
 
   if (stored.revokedAt) {
-    await prisma.refreshToken.updateMany({
-      where: { familyId: stored.familyId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
-    await audit.record({
-      actor: stored.user,
-      action: audit.AUDIT_ACTIONS.AUTH_SESSION_REUSE,
-      category: 'SECURITY',
-      summary: `Refresh token reuse detected for ${stored.user.name}; all sessions revoked`,
-      target: { type: 'user', id: stored.user.id, label: stored.user.email },
+    const revokedMsAgo = Date.now() - stored.revokedAt.getTime();
+    const withinGrace = revokedMsAgo <= env.REFRESH_GRACE_SECONDS * 1000;
+
+    const familyStillActive = withinGrace
+      ? await prisma.refreshToken.count({
+          where: { familyId: stored.familyId, revokedAt: null, expiresAt: { gt: new Date() } },
+        })
+      : 0;
+
+    if (!withinGrace || familyStillActive === 0) {
+      await prisma.refreshToken.updateMany({
+        where: { familyId: stored.familyId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      await audit.record({
+        actor: stored.user,
+        action: audit.AUDIT_ACTIONS.AUTH_SESSION_REUSE,
+        category: 'SECURITY',
+        summary: 'triggered refresh token reuse detection; all sessions revoked',
+        target: { type: 'user', id: stored.user.id, label: stored.user.email },
+        context,
+      });
+
+      throw new HttpError(
+        401,
+        'SESSION_REUSE_DETECTED',
+        'Session invalidated. Please sign in again.',
+      );
+    }
+
+    logger.debug(
+      { userId: stored.user.id, revokedMsAgo },
+      'refresh replay inside grace window, treating as a concurrent request',
+    );
+
+    const graceTokens = await issueSession(stored.user, {
+      familyId: stored.familyId,
       context,
     });
-
-    throw new HttpError(
-      401,
-      'SESSION_REUSE_DETECTED',
-      'Session invalidated. Please sign in again.',
-    );
+    return { user: stored.user, tokens: graceTokens };
   }
 
   if (stored.expiresAt <= new Date()) {
@@ -222,7 +245,7 @@ const logout = async (presentedToken, context) => {
     actor: { id: stored.userId },
     action: audit.AUDIT_ACTIONS.AUTH_LOGOUT,
     category: 'SECURITY',
-    summary: 'Signed out',
+    summary: 'signed out',
     context,
   });
 };

@@ -24,6 +24,7 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
   ACCESS_TOKEN_TTL: z.string().default('15m'),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
+  REFRESH_GRACE_SECONDS: z.coerce.number().int().min(0).max(120).default(15),
   MAX_FAILED_LOGINS: z.coerce.number().int().min(3).max(20).default(5),
   LOCKOUT_MINUTES: z.coerce.number().int().min(1).max(1440).default(15),
 });
