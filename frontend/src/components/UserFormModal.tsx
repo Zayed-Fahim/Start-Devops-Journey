@@ -1,25 +1,17 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
-import { Modal } from "./Modal";
-import { ApiError, createUser, updateUser, type UserInput } from "@/lib/api-browser";
-import { ROLES, STATUSES, type Role, type Status, type User } from "@/lib/types";
-import { cn } from "@/lib/utils";
-
-/**
- * Create and edit share ONE form. The only differences are the initial values,
- * the request method, and whether the password field is required — which is
- * not enough divergence to justify two components that then drift apart.
- */
+import { useRouter } from 'next/navigation';
+import { useId, useState } from 'react';
+import { ApiError, createUser, updateUser, type UserInput } from '@/lib/api-browser';
+import { ROLES, STATUSES, type Role, type Status, type User } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { Modal } from './Modal';
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  /** undefined = create mode, a user = edit mode */
   user?: User;
 }
-
 function Field({
   label,
   htmlFor,
@@ -39,97 +31,86 @@ function Field({
         {label}
       </label>
       {children}
-      {/* The error is linked to the input via aria-describedby (see below), so
-          a screen reader announces it on focus. Red text alone is invisible to
-          anyone not looking directly at it. */}
-      {error ? (
+
+      {error && (
         <p id={`${htmlFor}-error`} className="text-sm text-danger">
           {error}
         </p>
-      ) : hint ? (
+      )}
+      {!error && hint && (
         <p id={`${htmlFor}-hint`} className="text-sm text-fg-muted">
           {hint}
         </p>
-      ) : null}
+      )}
     </div>
   );
 }
-
 export function UserFormModal({ open, onClose, user }: Props) {
   const router = useRouter();
   const isEdit = Boolean(user);
   const uid = useId();
-
-  const [name, setName] = useState(user?.name ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState<Role>(user?.role ?? "USER");
-  const [status, setStatus] = useState<Status>(user?.status ?? "ACTIVE");
-
+  const [name, setName] = useState(user?.name ?? '');
+  const [email, setEmail] = useState(user?.email ?? '');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState<Role>(user?.role ?? 'USER');
+  const [status, setStatus] = useState<Status>(user?.status ?? 'ACTIVE');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  let submitLabel = 'Create user';
+  if (submitting) submitLabel = 'Saving…';
+  else if (isEdit) submitLabel = 'Save changes';
+
   const inputClass = (hasError: boolean) =>
     cn(
-      "h-10 w-full rounded-lg border bg-bg px-3 text-sm text-fg placeholder:text-fg-muted",
-      hasError ? "border-danger" : "border-border focus-visible:border-accent"
+      'h-10 w-full rounded-lg border bg-bg px-3 text-sm text-fg placeholder:text-fg-muted',
+      hasError ? 'border-danger' : 'border-border focus-visible:border-accent',
     );
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
     setFieldErrors({});
     setFormError(null);
-
     try {
       if (isEdit && user) {
         const patch: Partial<UserInput> = { name, email, role, status };
-        // Only send a password if one was typed. Sending "" would fail
-        // validation, and sending the old hash would double-hash it.
         if (password) patch.password = password;
         await updateUser(user.id, patch);
       } else {
         await createUser({ name, email, password, role, status });
       }
-
-      // Re-run the Server Components so the table and the stat cards both
-      // reflect the write. No client cache to invalidate, because the server
-      // is the only source of truth here.
       router.refresh();
       onClose();
     } catch (error) {
       if (error instanceof ApiError) {
-        // The API returns details[] as [{field, message}], which maps straight
-        // onto the inputs — this is the payoff for the backend using ONE error
-        // envelope everywhere.
         const mapped = error.fieldErrors();
         setFieldErrors(mapped);
-        // 409 duplicate email arrives with a field detail, so only show the
-        // banner when nothing could be attached to a specific input.
         if (Object.keys(mapped).length === 0) setFormError(error.message);
       } else {
-        setFormError("Something went wrong. Please try again.");
+        setFormError('Something went wrong. Please try again.');
       }
     } finally {
       setSubmitting(false);
     }
   };
-
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? "Edit user" : "Add user"}
+      title={isEdit ? 'Edit user' : 'Add user'}
       description={
         isEdit
           ? "Update this user's details. Leave the password blank to keep it unchanged."
-          : "Create a new user record."
+          : 'Create a new user record.'
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         {formError && (
-          <div role="alert" className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+          <div
+            role="alert"
+            className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger"
+          >
             {formError}
           </div>
         )}
@@ -159,15 +140,15 @@ export function UserFormModal({ open, onClose, user }: Props) {
             autoComplete="email"
             aria-invalid={Boolean(fieldErrors.email)}
             aria-describedby={fieldErrors.email ? `${uid}-email-error` : undefined}
-            className={cn(inputClass(Boolean(fieldErrors.email)), "font-mono")}
+            className={cn(inputClass(Boolean(fieldErrors.email)), 'font-mono')}
           />
         </Field>
 
         <Field
-          label={isEdit ? "New password" : "Password"}
+          label={isEdit ? 'New password' : 'Password'}
           htmlFor={`${uid}-password`}
           error={fieldErrors.password}
-          hint={isEdit ? "Leave blank to keep the current password" : "At least 8 characters"}
+          hint={isEdit ? 'Leave blank to keep the current password' : 'At least 8 characters'}
         >
           <input
             id={`${uid}-password`}
@@ -229,7 +210,7 @@ export function UserFormModal({ open, onClose, user }: Props) {
             disabled={submitting}
             className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:opacity-90 disabled:opacity-60"
           >
-            {submitting ? "Saving…" : isEdit ? "Save changes" : "Create user"}
+            {submitLabel}
           </button>
         </div>
       </form>

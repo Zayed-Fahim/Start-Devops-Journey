@@ -1,15 +1,4 @@
-import Link from "next/link";
-
-/**
- * Two DIFFERENT empty states, and conflating them is a real usability bug.
- *
- *   "No users yet"              → the database is empty. Offer to create one.
- *   "No users match filters"    → there is data, your filters hid it. Offer to
- *                                 clear them.
- *
- * Showing "No users yet" to someone who has typed a search tells them their
- * data is gone. They will reload, panic, or file a bug.
- */
+import Link from 'next/link';
 
 const IconInbox = (
   <svg
@@ -28,7 +17,6 @@ const IconInbox = (
     />
   </svg>
 );
-
 export function EmptyState({
   filtered,
   onCreate,
@@ -40,12 +28,12 @@ export function EmptyState({
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
       {IconInbox}
       <h2 className="text-base font-semibold">
-        {filtered ? "No users match these filters" : "No users yet"}
+        {filtered ? 'No users match these filters' : 'No users yet'}
       </h2>
       <p className="max-w-sm text-sm text-fg-muted">
         {filtered
-          ? "Try a different search term, or clear the filters to see everyone."
-          : "Create your first user, or run `yarn seed` in the backend to load 25 sample users."}
+          ? 'Try a different search term, or clear the filters to see everyone.'
+          : 'Create your first user, or run `yarn seed` in the backend to load 25 sample users.'}
       </p>
       {filtered ? (
         <Link

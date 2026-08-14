@@ -1,19 +1,7 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-/* Tailwind v4 defaults `dark:` to prefers-color-scheme. This project has a
-   manual toggle, so redefine the variant to key off a `.dark` class that the
-   toggle puts on <html>. Without this override the toggle would change nothing
-   and only the OS setting would matter. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ---------------------------------------------------------------------------
-   Semantic colour tokens.
-
-   Named by ROLE (surface, border, muted text), never by literal colour. That
-   is what makes dark mode a variable swap instead of a rewrite: if these were
-   called --white and --gray-100, every one of them would be a lie in dark
-   mode and you would end up hunting `bg-white` through every component.
---------------------------------------------------------------------------- */
 :root {
   --bg: #ffffff;
   --surface: #f8fafc;
@@ -32,19 +20,13 @@
   --border: #262626;
   --fg: #ededed;
   --fg-muted: #a1a1aa;
-  /* Lighter than the light-mode accent on purpose: the same blue that reads as
-     confident on white is muddy and low-contrast on near-black. */
+
   --accent: #3b82f6;
   --accent-fg: #0a0a0a;
   --danger: #ef4444;
   --danger-fg: #0a0a0a;
 }
 
-/* @theme inline maps the CSS variables above onto Tailwind utilities, so
-   `bg-surface`, `text-fg-muted`, `border-border` etc. all exist and all follow
-   the theme automatically. `inline` matters: it makes Tailwind emit
-   var(--surface) rather than resolving the value at build time, which is
-   exactly what lets .dark override it at runtime. */
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -67,18 +49,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* A visible focus ring on every keyboard-focused control. `:focus-visible`
-   rather than `:focus` so a mouse click does not leave a ring behind, while
-   Tab always shows one. Removing outlines without a replacement is the single
-   most common way to make an interface unusable without a mouse. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* Respect a user who has asked their OS for less motion. Vestibular disorders
-   are real and this costs nothing. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -96,8 +72,6 @@ body {
   }
 }
 
-/* Skeleton shimmer. Sized to the element it covers, so the loading state has
-   the same geometry as the content that replaces it -- no layout shift. */
 .skeleton {
   position: relative;
   overflow: hidden;
@@ -106,7 +80,7 @@ body {
 }
 
 .skeleton::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   transform: translateX(-100%);

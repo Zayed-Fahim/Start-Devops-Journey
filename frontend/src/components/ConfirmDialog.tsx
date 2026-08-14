@@ -1,50 +1,31 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Modal } from "./Modal";
-import { ApiError, deleteUser } from "@/lib/api-browser";
-import type { User } from "@/lib/types";
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { ApiError, deleteUser } from '@/lib/api-browser';
+import type { User } from '@/lib/types';
+import { Modal } from './Modal';
 
-/**
- * Delete confirmation.
- *
- * It NAMES the user being deleted. "Are you sure?" is not a confirmation — the
- * user has already forgotten which row's menu they opened, and there is no
- * undo behind this button. Showing the name and email lets them catch the
- * mistake while it is still free.
- */
-export function ConfirmDialog({
-  user,
-  onClose,
-}: {
-  user: User | null;
-  onClose: () => void;
-}) {
+export function ConfirmDialog({ user, onClose }: { user: User | null; onClose: () => void }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-
   const handleDelete = async () => {
     if (!user) return;
     setDeleting(true);
     setError(null);
-
     try {
       await deleteUser(user.id);
       router.refresh();
       onClose();
     } catch (err) {
       setError(
-        err instanceof ApiError
-          ? err.message
-          : "Could not delete this user. Please try again."
+        err instanceof ApiError ? err.message : 'Could not delete this user. Please try again.',
       );
     } finally {
       setDeleting(false);
     }
   };
-
   return (
     <Modal
       open={Boolean(user)}
@@ -55,12 +36,15 @@ export function ConfirmDialog({
       {user && (
         <div className="space-y-4">
           <p className="text-sm">
-            Delete <span className="font-semibold">{user.name}</span>{" "}
+            Delete <span className="font-semibold">{user.name}</span>{' '}
             <span className="font-mono text-fg-muted">({user.email})</span>?
           </p>
 
           {error && (
-            <div role="alert" className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+            <div
+              role="alert"
+              className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger"
+            >
               {error}
             </div>
           )}
@@ -79,7 +63,7 @@ export function ConfirmDialog({
               disabled={deleting}
               className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-danger-fg hover:opacity-90 disabled:opacity-60"
             >
-              {deleting ? "Deleting…" : "Delete user"}
+              {deleting ? 'Deleting…' : 'Delete user'}
             </button>
           </div>
         </div>

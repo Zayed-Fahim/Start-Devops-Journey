@@ -1,23 +1,8 @@
-/**
- * Loading placeholders that match the SHAPE of the content they stand in for.
- *
- * Deliberately not a centred spinner. A spinner occupies no space, so when the
- * real content arrives the page jumps — content shifts under the cursor and
- * whatever the user was about to click moves. A skeleton reserves the same
- * geometry, so the swap is invisible.
- */
-
 export function StatCardsSkeleton() {
   return (
-    <div
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-      aria-hidden="true"
-    >
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div
-          key={i}
-          className="rounded-xl border border-border bg-surface p-6"
-        >
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-hidden="true">
+      {['total', 'active', 'admins', 'devs'].map((slot) => (
+        <div key={slot} className="rounded-xl border border-border bg-surface p-6">
           <div className="skeleton h-3 w-20" />
           <div className="skeleton mt-3 h-8 w-14" />
         </div>
@@ -25,13 +10,10 @@ export function StatCardsSkeleton() {
     </div>
   );
 }
-
 export function TableSkeleton({ rows = 10 }: { rows?: number }) {
   return (
     <div
       className="overflow-hidden rounded-xl border border-border"
-      // One polite announcement for assistive tech; the individual bars are
-      // noise, so they stay hidden.
       role="status"
       aria-label="Loading users"
     >
@@ -39,9 +21,9 @@ export function TableSkeleton({ rows = 10 }: { rows?: number }) {
         <div className="skeleton h-3 w-32" />
       </div>
       <div aria-hidden="true">
-        {Array.from({ length: rows }).map((_, i) => (
+        {Array.from({ length: rows }, (_, i) => `skeleton-row-${i}`).map((rowKey) => (
           <div
-            key={i}
+            key={rowKey}
             className="flex items-center gap-4 border-b border-border px-4 py-3 last:border-b-0"
           >
             <div className="skeleton size-9 shrink-0 rounded-full" />
