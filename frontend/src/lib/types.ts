@@ -88,15 +88,18 @@ export interface PermissionDef {
   sortOrder: number;
 }
 
-export interface RoleSummary {
+export interface RoleDetail {
   id: string;
   name: string;
   description: string | null;
   isSystem: boolean;
-  userCount: number;
   permissions: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RoleSummary extends RoleDetail {
+  userCount: number;
 }
 
 export interface SessionSummary {

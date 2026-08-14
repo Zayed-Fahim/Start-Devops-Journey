@@ -1,4 +1,4 @@
-import type { ApiErrorBody, Role, Status, User } from './types';
+import type { ApiErrorBody, Role, RoleDetail, Status, User } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000';
 
@@ -142,9 +142,9 @@ export interface RoleInput {
 }
 
 export const createRole = (input: RoleInput) =>
-  request<unknown>('/api/roles', { method: 'POST', body: JSON.stringify(input) });
+  request<RoleDetail>('/api/roles', { method: 'POST', body: JSON.stringify(input) });
 
 export const updateRole = (id: string, input: RoleInput) =>
-  request<unknown>(`/api/roles/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+  request<RoleDetail>(`/api/roles/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
 
 export const deleteRole = (id: string) => request<void>(`/api/roles/${id}`, { method: 'DELETE' });

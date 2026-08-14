@@ -1,10 +1,106 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Fragment, useState } from 'react';
+import { Fragment, startTransition, useEffect, useState, useSyncExternalStore } from 'react';
 import { ApiError, createRole, deleteRole, updateRole } from '@/lib/api-browser';
 import type { PermissionDef, RoleSummary } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
+const DRAFT_PREFIX = 'draft-';
+const SEED_PERMISSION = 'users.read';
+
+interface LocalRole {
+  permissions: string[];
+  updatedAt: string | null;
+}
+
+interface Overlay {
+  local: Map<string, LocalRole>;
+  drafts: RoleSummary[];
+  hidden: Set<string>;
+  busy: Set<string>;
+}
+
+function createOverlayStore() {
+  let snapshot: Overlay = {
+    local: new Map(),
+    drafts: [],
+    hidden: new Set(),
+    busy: new Set(),
+  };
+  const listeners = new Set<() => void>();
+  const chain = new Map<string, Promise<void>>();
+  let draftCount = 0;
+
+  const commit = (patch: Partial<Overlay>) => {
+    snapshot = { ...snapshot, ...patch };
+    listeners.forEach((listener) => listener());
+  };
+
+  return {
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    read: () => snapshot,
+    chainFor: (roleId: string) => chain.get(roleId),
+    setChain: (roleId: string, promise: Promise<void> | null) => {
+      if (promise) chain.set(roleId, promise);
+      else chain.delete(roleId);
+    },
+    nextDraftId: () => {
+      draftCount += 1;
+      return `${DRAFT_PREFIX}${draftCount}`;
+    },
+    setLocal(roleId: string, value: LocalRole | null) {
+      const local = new Map(snapshot.local);
+      if (value) local.set(roleId, value);
+      else local.delete(roleId);
+      commit({ local });
+    },
+    setBusy(roleId: string, value: boolean) {
+      const busy = new Set(snapshot.busy);
+      if (value) busy.add(roleId);
+      else busy.delete(roleId);
+      commit({ busy });
+    },
+    setHidden(roleId: string, value: boolean) {
+      const hidden = new Set(snapshot.hidden);
+      if (value) hidden.add(roleId);
+      else hidden.delete(roleId);
+      commit({ hidden });
+    },
+    setDrafts(drafts: RoleSummary[]) {
+      commit({ drafts });
+    },
+    prune(present: Set<string>, serverUpdatedAt: Map<string, string>) {
+      const local = new Map(snapshot.local);
+      local.forEach((entry, id) => {
+        if (snapshot.busy.has(id)) return;
+        const server = serverUpdatedAt.get(id);
+        if (server === undefined || entry.updatedAt === null || server >= entry.updatedAt) {
+          local.delete(id);
+        }
+      });
+
+      const drafts = snapshot.drafts.filter((draft) => !present.has(draft.id));
+      const hidden = new Set([...snapshot.hidden].filter((id) => present.has(id)));
+
+      if (
+        local.size === snapshot.local.size &&
+        drafts.length === snapshot.drafts.length &&
+        hidden.size === snapshot.hidden.size
+      ) {
+        return;
+      }
+      commit({ local, drafts, hidden });
+    },
+  };
+}
+
+type OverlayStore = ReturnType<typeof createOverlayStore>;
 
 function groupPermissions(permissions: PermissionDef[]) {
   const groups = new Map<string, PermissionDef[]>();
@@ -14,6 +110,21 @@ function groupPermissions(permissions: PermissionDef[]) {
     groups.set(permission.group, list);
   });
   return [...groups.entries()];
+}
+
+function sameSet(a: string[], b: string[]) {
+  if (a.length !== b.length) return false;
+  const other = new Set(b);
+  return a.every((entry) => other.has(entry));
+}
+
+function byServerOrder(a: RoleSummary, b: RoleSummary) {
+  if (a.isSystem !== b.isSystem) return a.isSystem ? -1 : 1;
+  return a.name.localeCompare(b.name);
+}
+
+function isDraft(role: RoleSummary) {
+  return role.id.startsWith(DRAFT_PREFIX);
 }
 
 export function PermissionsMatrix({
@@ -26,51 +137,140 @@ export function PermissionsMatrix({
   canManage: boolean;
 }) {
   const router = useRouter();
-  const [busy, setBusy] = useState<string | null>(null);
+  const [store] = useState<OverlayStore>(createOverlayStore);
+  const overlay = useSyncExternalStore(store.subscribe, store.read, store.read);
+
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
 
-  const grouped = groupPermissions(permissions);
+  useEffect(() => {
+    store.prune(
+      new Set(roles.map((role) => role.id)),
+      new Map(roles.map((role) => [role.id, role.updatedAt])),
+    );
+  }, [roles, store]);
 
-  const run = async (key: string, action: () => Promise<unknown>) => {
-    setBusy(key);
-    setError(null);
-    try {
-      await action();
-      router.refresh();
-      return true;
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not update roles.');
-      return false;
-    } finally {
-      setBusy(null);
-    }
+  const runQueued = (roleId: string, task: () => Promise<void>) => {
+    store.setBusy(roleId, true);
+
+    const previous = store.chainFor(roleId) ?? Promise.resolve();
+    const next: Promise<void> = previous
+      .then(task)
+      .catch((cause) => {
+        store.setLocal(roleId, null);
+        store.setDrafts(store.read().drafts.filter((draft) => draft.id !== roleId));
+        store.setHidden(roleId, false);
+        setError(cause instanceof ApiError ? cause.message : 'Could not update roles.');
+      })
+      .then(() => {
+        if (store.chainFor(roleId) !== next) return;
+        store.setChain(roleId, null);
+        store.setBusy(roleId, false);
+        startTransition(() => router.refresh());
+      });
+
+    store.setChain(roleId, next);
   };
+
+  const permissionsOf = (role: RoleSummary) =>
+    overlay.local.get(role.id)?.permissions ?? role.permissions;
+
+  const isUnsaved = (role: RoleSummary, key: string) => {
+    if (!overlay.busy.has(role.id)) return false;
+    const local = overlay.local.get(role.id);
+    if (!local) return false;
+    return local.permissions.includes(key) !== role.permissions.includes(key);
+  };
+
+  const visibleRoles = [
+    ...roles,
+    ...overlay.drafts.filter((draft) => !roles.some((role) => role.id === draft.id)),
+  ]
+    .filter((role) => !overlay.hidden.has(role.id))
+    .sort(byServerOrder);
 
   const toggle = (role: RoleSummary, key: string) => {
-    const next = role.permissions.includes(key)
-      ? role.permissions.filter((permission) => permission !== key)
-      : [...role.permissions, key];
-    return run(`${role.id}:${key}`, () => updateRole(role.id, { permissions: next }));
+    const current = permissionsOf(role);
+    const desired = current.includes(key)
+      ? current.filter((entry) => entry !== key)
+      : [...current, key];
+
+    store.setLocal(role.id, { permissions: desired, updatedAt: null });
+    setError(null);
+
+    runQueued(role.id, async () => {
+      const intent = store.read().local.get(role.id);
+      if (!intent) return;
+      const updated = await updateRole(role.id, { permissions: intent.permissions });
+      const settled = store.read().local.get(role.id);
+      if (settled && sameSet(settled.permissions, intent.permissions)) {
+        store.setLocal(role.id, {
+          permissions: updated.permissions,
+          updatedAt: updated.updatedAt,
+        });
+      }
+    });
   };
 
-  const submitNewRole = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const ok = await run('create', () =>
-      createRole({
-        name: newName,
-        description: newDescription || undefined,
-        permissions: ['users.read'],
-      }),
-    );
-    if (ok) {
-      setNewName('');
-      setNewDescription('');
-      setCreating(false);
-    }
+  const removeRole = (role: RoleSummary) => {
+    store.setHidden(role.id, true);
+    setError(null);
+    runQueued(role.id, () => deleteRole(role.id));
   };
+
+  const submitNewRole = (event: React.FormEvent) => {
+    event.preventDefault();
+    const name = newName.trim();
+    const description = newDescription.trim();
+    if (!name) return;
+
+    const draftId = store.nextDraftId();
+    store.setDrafts([
+      ...store.read().drafts,
+      {
+        id: draftId,
+        name,
+        description: description || null,
+        isSystem: false,
+        userCount: 0,
+        permissions: [SEED_PERMISSION],
+        createdAt: '',
+        updatedAt: '',
+      },
+    ]);
+
+    setError(null);
+    setCreating(false);
+    setNewName('');
+    setNewDescription('');
+
+    runQueued(draftId, async () => {
+      try {
+        const created = await createRole({
+          name,
+          description: description || undefined,
+          permissions: [SEED_PERMISSION],
+        });
+        store.setDrafts([
+          ...store.read().drafts.filter((draft) => draft.id !== draftId),
+          { ...created, userCount: 0 },
+        ]);
+      } catch (cause) {
+        setCreating(true);
+        setNewName((previous) => previous || name);
+        setNewDescription((previous) => previous || description);
+        throw cause;
+      }
+    });
+  };
+
+  const grouped = groupPermissions(permissions);
+  const savingCount = overlay.busy.size;
+  const statusLabel = savingCount
+    ? `Saving ${savingCount} change${savingCount === 1 ? '' : 's'}…`
+    : '';
 
   return (
     <div className="space-y-4">
@@ -95,12 +295,18 @@ export function PermissionsMatrix({
                 >
                   Permission
                 </th>
-                {roles.map((role) => (
+                {visibleRoles.map((role) => (
                   <th key={role.id} scope="col" className="px-4 py-3 text-center">
                     <div className="text-sm font-semibold text-fg">{role.name}</div>
                     <div className="mt-0.5 text-xs font-normal text-fg-muted">
-                      {role.userCount} user{role.userCount === 1 ? '' : 's'}
-                      {role.isSystem && ' · system'}
+                      {isDraft(role) ? (
+                        'creating…'
+                      ) : (
+                        <>
+                          {role.userCount} user{role.userCount === 1 ? '' : 's'}
+                          {role.isSystem && ' · system'}
+                        </>
+                      )}
                     </div>
                   </th>
                 ))}
@@ -112,7 +318,7 @@ export function PermissionsMatrix({
                   <tr className="border-b border-border bg-surface/50">
                     <th
                       scope="colgroup"
-                      colSpan={roles.length + 1}
+                      colSpan={visibleRoles.length + 1}
                       className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-fg-muted"
                     >
                       {group}
@@ -124,14 +330,14 @@ export function PermissionsMatrix({
                         <div className="font-medium">{permission.label}</div>
                         <div className="font-mono text-xs text-fg-muted">{permission.key}</div>
                       </th>
-                      {roles.map((role) => {
-                        const granted = role.permissions.includes(permission.key);
-                        const key = `${role.id}:${permission.key}`;
+                      {visibleRoles.map((role) => {
+                        const granted = permissionsOf(role).includes(permission.key);
+                        const interactive = canManage && !isDraft(role);
                         return (
                           <td key={role.id} className="px-4 py-3 text-center">
                             <button
                               type="button"
-                              disabled={!canManage || busy !== null}
+                              disabled={!interactive}
                               onClick={() => toggle(role, permission.key)}
                               aria-pressed={granted}
                               aria-label={`${granted ? 'Revoke' : 'Grant'} ${permission.label} for ${role.name}`}
@@ -140,8 +346,8 @@ export function PermissionsMatrix({
                                 granted
                                   ? 'border-accent bg-accent text-accent-fg'
                                   : 'border-border text-transparent hover:border-fg-muted',
-                                canManage ? 'cursor-pointer' : 'cursor-not-allowed opacity-70',
-                                busy === key && 'opacity-50',
+                                interactive ? 'cursor-pointer' : 'cursor-not-allowed opacity-70',
+                                isUnsaved(role, permission.key) && 'animate-pulse',
                               )}
                             >
                               <svg
@@ -175,14 +381,14 @@ export function PermissionsMatrix({
               Custom roles with no users assigned can be deleted.
             </p>
             <div className="flex flex-wrap gap-2">
-              {roles
-                .filter((role) => !role.isSystem && role.userCount === 0)
+              {visibleRoles
+                .filter((role) => !role.isSystem && role.userCount === 0 && !isDraft(role))
                 .map((role) => (
                   <button
                     key={role.id}
                     type="button"
-                    disabled={busy !== null}
-                    onClick={() => run(role.id, () => deleteRole(role.id))}
+                    disabled={overlay.busy.has(role.id)}
+                    onClick={() => removeRole(role)}
                     className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-danger hover:bg-danger/5 disabled:opacity-60"
                   >
                     Delete {role.name}
@@ -192,6 +398,10 @@ export function PermissionsMatrix({
           </div>
         )}
       </div>
+
+      <p role="status" aria-live="polite" className="min-h-4 text-xs text-fg-muted">
+        {statusLabel}
+      </p>
 
       {canManage && (
         <div className="rounded-xl border border-border p-4">
@@ -226,10 +436,9 @@ export function PermissionsMatrix({
               </div>
               <button
                 type="submit"
-                disabled={busy !== null}
-                className="h-10 rounded-lg bg-accent px-4 text-sm font-medium text-accent-fg hover:opacity-90 disabled:opacity-60"
+                className="h-10 rounded-lg bg-accent px-4 text-sm font-medium text-accent-fg hover:opacity-90"
               >
-                {busy === 'create' ? 'Creating…' : 'Create role'}
+                Create role
               </button>
               <button
                 type="button"

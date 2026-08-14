@@ -38,7 +38,7 @@ export default async function PermissionsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Permissions</h1>
           <p className="mt-1 text-sm text-fg-muted">
-            What each role can do. Changes take effect within 30 seconds for everyone holding that
+            What each role can do. Changes take effect on the next request for everyone holding that
             role.
           </p>
         </div>
