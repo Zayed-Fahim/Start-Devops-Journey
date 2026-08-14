@@ -14,6 +14,7 @@ import {
 import type { TeamMember, TeamSummary, User } from '@/lib/types';
 import { cn, initials } from '@/lib/utils';
 import { RoleBadge } from './Badges';
+import { Select } from './Select';
 
 const inputClass =
   'h-10 rounded-lg border border-border bg-bg px-3 text-sm text-fg placeholder:text-fg-muted focus-visible:border-accent';
@@ -316,27 +317,21 @@ export function TeamsExplorer({
                         <div className="mt-3">
                           {addingTo === team.id ? (
                             <div className="flex flex-wrap items-center gap-2">
-                              <label htmlFor={`${uid}-${team.id}-add`} className="sr-only">
-                                Add a member to {team.name}
-                              </label>
-                              <select
+                              <Select
                                 id={`${uid}-${team.id}-add`}
-                                defaultValue=""
+                                value=""
                                 disabled={busy === `${team.id}:add`}
-                                onChange={(event) => {
-                                  if (event.target.value) addMember(team, event.target.value);
+                                onChange={(userId) => {
+                                  if (userId) addMember(team, userId);
                                 }}
-                                className={inputClass}
-                              >
-                                <option value="" disabled>
-                                  Choose someone…
-                                </option>
-                                {available.map((user) => (
-                                  <option key={user.id} value={user.id}>
-                                    {user.name}
-                                  </option>
-                                ))}
-                              </select>
+                                label={`Add a member to ${team.name}`}
+                                placeholder="Choose someone…"
+                                className="w-56"
+                                options={available.map((user) => ({
+                                  value: user.id,
+                                  label: user.name,
+                                }))}
+                              />
                               <button
                                 type="button"
                                 onClick={() => setAddingTo(null)}

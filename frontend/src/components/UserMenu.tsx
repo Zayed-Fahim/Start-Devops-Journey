@@ -1,11 +1,11 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
 import { logout } from '@/lib/api-browser';
 import type { SessionUser } from '@/lib/types';
 import { cn, initials } from '@/lib/utils';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import { RoleBadge } from './Badges';
 import { IconSettings } from './NavIcons';
 
@@ -22,21 +22,6 @@ const IconSignOut = (
   >
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
     <path d="m16 17 5-5-5-5M21 12H9" />
-  </svg>
-);
-
-const IconChevronDown = (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="size-4"
-    aria-hidden="true"
-  >
-    <path d="m6 9 6 6 6-6" />
   </svg>
 );
 
@@ -93,19 +78,6 @@ export function UserMenu({ user }: { user: SessionUser }) {
       >
         <span aria-hidden="true" className={cn(avatarClass, 'size-8')}>
           {initials(user.name)}
-        </span>
-        <span className="hidden text-left lg:block">
-          <span className="block max-w-32 truncate text-body-sm font-medium leading-tight">
-            {user.name}
-          </span>
-          <span className="block text-label-sm leading-tight text-fg-muted">
-            {user.role ?? 'No role'}
-          </span>
-        </span>
-        <span
-          className={cn('hidden text-fg-muted transition-transform lg:block', open && 'rotate-180')}
-        >
-          {IconChevronDown}
         </span>
       </button>
 

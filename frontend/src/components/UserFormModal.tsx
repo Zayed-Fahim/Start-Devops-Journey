@@ -6,6 +6,7 @@ import { ApiError, createUser, updateUser, type UserInput } from '@/lib/api-brow
 import { STATUSES, type Role, type Status, type User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Modal } from './Modal';
+import { Select } from './Select';
 
 const LEAST_PRIVILEGED_ROLE = 'USER';
 
@@ -174,33 +175,25 @@ export function UserFormModal({ open, onClose, roles, user }: Props) {
 
         <div className="grid grid-cols-2 gap-4">
           <Field label="Role" htmlFor={`${uid}-role`} error={fieldErrors.role}>
-            <select
+            <Select
               id={`${uid}-role`}
               value={role}
-              onChange={(event) => setRole(event.target.value as Role)}
-              className={inputClass(Boolean(fieldErrors.role))}
-            >
-              {options.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </select>
+              onChange={(next) => setRole(next as Role)}
+              label="Role"
+              invalid={Boolean(fieldErrors.role)}
+              options={options.map((value) => ({ value, label: value }))}
+            />
           </Field>
 
           <Field label="Status" htmlFor={`${uid}-status`} error={fieldErrors.status}>
-            <select
+            <Select
               id={`${uid}-status`}
               value={status}
-              onChange={(event) => setStatus(event.target.value as Status)}
-              className={inputClass(Boolean(fieldErrors.status))}
-            >
-              {STATUSES.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </select>
+              onChange={(next) => setStatus(next as Status)}
+              label="Status"
+              invalid={Boolean(fieldErrors.status)}
+              options={STATUSES.map((value) => ({ value, label: value }))}
+            />
           </Field>
         </div>
 

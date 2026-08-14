@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useQueryParams } from '@/lib/useQueryParams';
 import { STATUSES } from '@/lib/types';
+import { Select } from './Select';
 
-const selectClass =
-  'h-10 rounded-lg border border-border bg-bg px-3 text-sm text-fg focus-visible:border-accent';
 export function FilterBar({ roles }: { roles: string[] }) {
   const { searchParams, setParams } = useQueryParams();
   const urlSearch = searchParams.get('search') ?? '';
@@ -51,33 +50,29 @@ export function FilterBar({ roles }: { roles: string[] }) {
         />
       </div>
 
-      <select
+      <Select
         value={role}
-        onChange={(event) => setParams({ role: event.target.value, page: undefined })}
-        aria-label="Filter by role"
-        className={selectClass}
-      >
-        <option value="">All roles</option>
-        {roles.map((value) => (
-          <option key={value} value={value}>
-            {value}
-          </option>
-        ))}
-      </select>
+        onChange={(next) => setParams({ role: next, page: undefined })}
+        label="Filter by role"
+        placeholder="All roles"
+        className="sm:w-44"
+        options={[
+          { value: '', label: 'All roles' },
+          ...roles.map((value) => ({ value, label: value })),
+        ]}
+      />
 
-      <select
+      <Select
         value={status}
-        onChange={(event) => setParams({ status: event.target.value, page: undefined })}
-        aria-label="Filter by status"
-        className={selectClass}
-      >
-        <option value="">All statuses</option>
-        {STATUSES.map((value) => (
-          <option key={value} value={value}>
-            {value}
-          </option>
-        ))}
-      </select>
+        onChange={(next) => setParams({ status: next, page: undefined })}
+        label="Filter by status"
+        placeholder="All statuses"
+        className="sm:w-44"
+        options={[
+          { value: '', label: 'All statuses' },
+          ...STATUSES.map((value) => ({ value, label: value })),
+        ]}
+      />
 
       {hasFilters && (
         <button

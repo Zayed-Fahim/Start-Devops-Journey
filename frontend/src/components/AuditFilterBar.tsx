@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useQueryParams } from '@/lib/useQueryParams';
 import { AUDIT_CATEGORIES, AUDIT_RANGES } from '@/lib/types';
-
-const controlClass =
-  'h-10 rounded-lg border border-border bg-bg px-3 text-sm text-fg focus-visible:border-accent';
+import { Select } from './Select';
 
 export function AuditFilterBar() {
   const { searchParams, setParams } = useQueryParams();
@@ -52,32 +50,25 @@ export function AuditFilterBar() {
         />
       </div>
 
-      <select
+      <Select
         value={category}
-        onChange={(event) => setParams({ category: event.target.value, page: undefined })}
-        aria-label="Filter by category"
-        className={controlClass}
-      >
-        <option value="">All categories</option>
-        {AUDIT_CATEGORIES.map((value) => (
-          <option key={value} value={value}>
-            {value}
-          </option>
-        ))}
-      </select>
+        onChange={(next) => setParams({ category: next, page: undefined })}
+        label="Filter by category"
+        placeholder="All categories"
+        className="sm:w-48"
+        options={[
+          { value: '', label: 'All categories' },
+          ...AUDIT_CATEGORIES.map((value) => ({ value, label: value })),
+        ]}
+      />
 
-      <select
+      <Select
         value={range}
-        onChange={(event) => setParams({ range: event.target.value, page: undefined })}
-        aria-label="Time range"
-        className={controlClass}
-      >
-        {AUDIT_RANGES.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        onChange={(next) => setParams({ range: next, page: undefined })}
+        label="Time range"
+        className="sm:w-48"
+        options={AUDIT_RANGES.map((option) => ({ value: option.value, label: option.label }))}
+      />
 
       {(urlSearch || category || range !== '30d') && (
         <button
