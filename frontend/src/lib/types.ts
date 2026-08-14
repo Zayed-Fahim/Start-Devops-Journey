@@ -1,12 +1,11 @@
-export const ROLES = ['ADMIN', 'DEVELOPER', 'USER'] as const;
 export const STATUSES = ['ACTIVE', 'INACTIVE'] as const;
-export type Role = (typeof ROLES)[number];
+export type Role = string;
 export type Status = (typeof STATUSES)[number];
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: Role;
+  role: Role | null;
   status: Status;
   createdAt: string;
   updatedAt: string;
@@ -27,8 +26,9 @@ export interface UsersResponse {
 }
 export interface UserStats {
   total: number;
-  byRole: Record<Role, number>;
+  byRole: Record<string, number>;
   byStatus: Record<Status, number>;
+  roles: string[];
 }
 export interface ApiErrorBody {
   error: {

@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import type {
   PermissionDef,
@@ -77,9 +78,9 @@ export function getUsers(query: UserQuery): Promise<UsersResponse> {
   return serverFetch<UsersResponse>(`/api/users${buildUsersQuery(query)}`);
 }
 
-export function getUserStats(): Promise<UserStats> {
-  return serverFetch<UserStats>('/api/users/stats');
-}
+export const getUserStats = cache((): Promise<UserStats> =>
+  serverFetch<UserStats>('/api/users/stats'),
+);
 
 export function getAuditLogs(query: AuditQuery): Promise<AuditLogsResponse> {
   const params = new URLSearchParams();

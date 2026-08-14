@@ -7,12 +7,20 @@ import { UsersTable } from '@/components/UsersTable';
 import { ErrorState } from '@/components/ErrorState';
 import { AddUserButton } from '@/components/AddUserButton';
 import { TopNav } from '@/components/TopNav';
-import { ApiFetchError, getUsers, getSessionUser } from '@/lib/api-server';
+import { ApiFetchError, getUsers, getUserStats, getSessionUser } from '@/lib/api-server';
 import type { UserQuery, UsersResponse } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-async function UsersSection({ query, canManage }: { query: UserQuery; canManage: boolean }) {
+async function UsersSection({
+  query,
+  canManage,
+  roles,
+}: {
+  query: UserQuery;
+  canManage: boolean;
+  roles: string[];
+}) {
   const isFiltered = Boolean(query.search || query.role || query.status);
 
   let result: UsersResponse | null = null;
@@ -36,6 +44,7 @@ async function UsersSection({ query, canManage }: { query: UserQuery; canManage:
       meta={result.meta}
       isFiltered={isFiltered}
       canManage={canManage}
+      roles={roles}
     />
   );
 }
@@ -52,6 +61,9 @@ export default async function DashboardPage({
   const canManage = ['users.create', 'users.update', 'users.delete'].some((key) =>
     granted.includes(key),
   );
+  const roles = await getUserStats()
+    .then((stats) => stats.roles)
+    .catch(() => [] as string[]);
   const query = await searchParams;
   const suspenseKey = new URLSearchParams(
     Object.entries(query).filter(([, value]) => value !== undefined) as [string, string][],
@@ -69,7 +81,7 @@ export default async function DashboardPage({
               Manage your team members and their account status
             </p>
           </div>
-          {canManage && <AddUserButton />}
+          {canManage && <AddUserButton roles={roles} />}
         </div>
 
         <Suspense fallback={<StatCardsSkeleton />}>
@@ -77,11 +89,11 @@ export default async function DashboardPage({
         </Suspense>
 
         <Suspense fallback={<div className="h-10" />}>
-          <FilterBar />
+          <FilterBar roles={roles} />
         </Suspense>
 
         <Suspense key={suspenseKey} fallback={<TableSkeleton rows={10} />}>
-          <UsersSection query={query} canManage={canManage} />
+          <UsersSection query={query} canManage={canManage} roles={roles} />
         </Suspense>
       </main>
     </div>

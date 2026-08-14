@@ -1,5 +1,6 @@
 import { getUserStats } from '@/lib/api-server';
 import type { UserStats } from '@/lib/types';
+import { roleTone } from './Badges';
 
 function StatCard({
   label,
@@ -15,7 +16,7 @@ function StatCard({
   return (
     <div className="rounded-xl border border-border bg-surface p-6">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm uppercase tracking-wide text-fg-muted">{label}</p>
+        <p className="truncate text-sm uppercase tracking-wide text-fg-muted">{label}</p>
         <span className={accent} aria-hidden="true">
           {icon}
         </span>
@@ -43,12 +44,10 @@ const IconShield = (
     <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" strokeLinejoin="round" />
   </svg>
 );
-const IconCode = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
-    <path d="m9 8-4 4 4 4M15 8l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
+const ROLE_CARDS = 2;
 export function StatCardsView({ stats }: { stats: UserStats }) {
+  const topRoles = stats.roles.slice(0, ROLE_CARDS);
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard label="Total users" value={stats.total} accent="text-fg-muted" icon={IconUsers} />
@@ -58,18 +57,15 @@ export function StatCardsView({ stats }: { stats: UserStats }) {
         accent="text-emerald-500"
         icon={IconCheck}
       />
-      <StatCard
-        label="Administrators"
-        value={stats.byRole.ADMIN}
-        accent="text-violet-500"
-        icon={IconShield}
-      />
-      <StatCard
-        label="Developers"
-        value={stats.byRole.DEVELOPER}
-        accent="text-blue-500"
-        icon={IconCode}
-      />
+      {topRoles.map((name) => (
+        <StatCard
+          key={name}
+          label={name}
+          value={stats.byRole[name] ?? 0}
+          accent={roleTone(name).accent}
+          icon={IconShield}
+        />
+      ))}
     </div>
   );
 }

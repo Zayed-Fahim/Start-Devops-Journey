@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useQueryParams } from '@/lib/useQueryParams';
-import { ROLES, STATUSES } from '@/lib/types';
+import { STATUSES } from '@/lib/types';
 
 const selectClass =
   'h-10 rounded-lg border border-border bg-bg px-3 text-sm text-fg focus-visible:border-accent';
-export function FilterBar() {
+export function FilterBar({ roles }: { roles: string[] }) {
   const { searchParams, setParams } = useQueryParams();
   const urlSearch = searchParams.get('search') ?? '';
   const role = searchParams.get('role') ?? '';
@@ -58,7 +58,7 @@ export function FilterBar() {
         className={selectClass}
       >
         <option value="">All roles</option>
-        {ROLES.map((value) => (
+        {roles.map((value) => (
           <option key={value} value={value}>
             {value}
           </option>

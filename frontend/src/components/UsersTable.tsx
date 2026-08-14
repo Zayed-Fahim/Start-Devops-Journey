@@ -154,11 +154,13 @@ export function UsersTable({
   meta,
   isFiltered,
   canManage,
+  roles,
 }: {
   users: UsersResponse['data'];
   meta: UsersResponse['meta'];
   isFiltered: boolean;
   canManage: boolean;
+  roles: string[];
 }) {
   const { searchParams, setParams } = useQueryParams();
   const [editing, setEditing] = useState<User | null>(null);
@@ -253,7 +255,13 @@ export function UsersTable({
       </div>
 
       {editing && (
-        <UserFormModal key={editing.id} open onClose={() => setEditing(null)} user={editing} />
+        <UserFormModal
+          key={editing.id}
+          open
+          roles={roles}
+          onClose={() => setEditing(null)}
+          user={editing}
+        />
       )}
       <ConfirmDialog user={deleting} onClose={() => setDeleting(null)} />
     </>

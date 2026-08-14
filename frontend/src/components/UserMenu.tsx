@@ -24,7 +24,7 @@ export function UserMenu({ user }: { user: SessionUser }) {
     <div className="flex items-center gap-3">
       <div className="hidden text-right sm:block">
         <p className="text-sm font-medium leading-tight">{user.name}</p>
-        <p className="text-xs text-fg-muted">{user.role}</p>
+        <p className="text-xs text-fg-muted">{user.role ?? 'No role'}</p>
       </div>
       <span
         aria-hidden="true"

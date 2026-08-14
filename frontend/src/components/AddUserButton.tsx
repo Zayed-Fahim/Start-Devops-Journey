@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { UserFormModal } from './UserFormModal';
 
-export function AddUserButton({ className }: { className?: string }) {
+export function AddUserButton({ roles, className }: { roles: string[]; className?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -28,7 +28,9 @@ export function AddUserButton({ className }: { className?: string }) {
         Add user
       </button>
 
-      {open && <UserFormModal key={String(open)} open onClose={() => setOpen(false)} />}
+      {open && (
+        <UserFormModal key={String(open)} open roles={roles} onClose={() => setOpen(false)} />
+      )}
     </>
   );
 }

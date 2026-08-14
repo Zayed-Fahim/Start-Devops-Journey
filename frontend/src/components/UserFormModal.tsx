@@ -3,13 +3,16 @@
 import { useRouter } from 'next/navigation';
 import { useId, useState } from 'react';
 import { ApiError, createUser, updateUser, type UserInput } from '@/lib/api-browser';
-import { ROLES, STATUSES, type Role, type Status, type User } from '@/lib/types';
+import { STATUSES, type Role, type Status, type User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Modal } from './Modal';
+
+const LEAST_PRIVILEGED_ROLE = 'USER';
 
 interface Props {
   open: boolean;
   onClose: () => void;
+  roles: string[];
   user?: User;
 }
 function Field({
@@ -45,14 +48,18 @@ function Field({
     </div>
   );
 }
-export function UserFormModal({ open, onClose, user }: Props) {
+export function UserFormModal({ open, onClose, roles, user }: Props) {
   const router = useRouter();
   const isEdit = Boolean(user);
   const uid = useId();
+  const options = user?.role && !roles.includes(user.role) ? [user.role, ...roles] : roles;
+  const fallbackRole = options.includes(LEAST_PRIVILEGED_ROLE)
+    ? LEAST_PRIVILEGED_ROLE
+    : (options.at(-1) ?? '');
   const [name, setName] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<Role>(user?.role ?? 'USER');
+  const [role, setRole] = useState<Role>(user?.role ?? fallbackRole);
   const [status, setStatus] = useState<Status>(user?.status ?? 'ACTIVE');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -173,7 +180,7 @@ export function UserFormModal({ open, onClose, user }: Props) {
               onChange={(event) => setRole(event.target.value as Role)}
               className={inputClass(Boolean(fieldErrors.role))}
             >
-              {ROLES.map((value) => (
+              {options.map((value) => (
                 <option key={value} value={value}>
                   {value}
                 </option>
