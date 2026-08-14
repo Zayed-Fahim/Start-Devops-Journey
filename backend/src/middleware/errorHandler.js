@@ -36,11 +36,22 @@ const errorHandler = (err, req, res, next) => {
       const target = Array.isArray(err.meta?.target)
         ? err.meta.target
         : [err.meta?.target].filter(Boolean);
-      const field = target.includes('email') ? 'email' : target[0] || 'field';
-      return send(409, 'DUPLICATE_EMAIL', `A user with this ${field} already exists`, [
+
+      if (target.includes('email')) {
+        return send(409, 'DUPLICATE_EMAIL', 'A user with this email already exists', [
+          { field: 'email', message: 'This email is already taken' },
+        ]);
+      }
+
+      const field = target[0] || 'value';
+      return send(409, 'DUPLICATE_VALUE', `That ${field} is already taken`, [
         { field, message: `This ${field} is already taken` },
       ]);
     }
+    case 'P2003':
+      return send(400, 'INVALID_REFERENCE', 'A referenced record does not exist', [
+        { field: err.meta?.field_name ?? 'reference', message: 'This record does not exist' },
+      ]);
     case 'P2025':
       return send(404, 'NOT_FOUND', 'Resource not found');
     case 'P2023':

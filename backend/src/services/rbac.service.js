@@ -36,7 +36,13 @@ const invalidateCatalogue = () => {
 };
 
 const resolvePermissionIds = async (keys) => {
-  const byKey = await permissionCatalogue();
+  let byKey = await permissionCatalogue();
+
+  if (keys.some((key) => !byKey.has(key))) {
+    invalidateCatalogue();
+    byKey = await permissionCatalogue();
+  }
+
   const missing = keys.filter((key) => !byKey.has(key));
   return { ids: keys.filter((key) => byKey.has(key)).map((key) => byKey.get(key)), missing };
 };

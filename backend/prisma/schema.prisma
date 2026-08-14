@@ -36,16 +36,48 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  roleId  String? @db.Uuid
+  roleId  String?     @db.Uuid
   roleRef AccessRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
-  refreshTokens RefreshToken[]
-  auditLogs     AuditLog[]
+  refreshTokens   RefreshToken[]
+  auditLogs       AuditLog[]
+  teamMemberships TeamMember[]
+  ledTeams        Team[]         @relation("TeamLead")
 
   @@index([roleId])
   @@index([status])
   @@index([createdAt])
   @@map("users")
+}
+
+model Team {
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String  @unique @db.VarChar(64)
+  description String? @db.VarChar(255)
+
+  leadUserId String? @db.Uuid
+  lead       User?   @relation("TeamLead", fields: [leadUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members TeamMember[]
+
+  @@index([leadUserId])
+  @@map("teams")
+}
+
+model TeamMember {
+  teamId   String   @db.Uuid
+  userId   String   @db.Uuid
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+  @@index([userId])
+  @@map("team_members")
 }
 
 model Permission {
