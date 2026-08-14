@@ -2,6 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import type {
+  AuditStats,
   PermissionDef,
   TeamMembersResponse,
   TeamSummary,
@@ -92,6 +93,10 @@ export function getAuditLogs(query: AuditQuery): Promise<AuditLogsResponse> {
   });
   const qs = params.toString();
   return serverFetch<AuditLogsResponse>(`/api/audit-logs${qs ? `?${qs}` : ''}`);
+}
+
+export function getAuditStats(): Promise<AuditStats> {
+  return serverFetch<AuditStats>('/api/audit-logs/stats');
 }
 
 export function getSessions(): Promise<{ data: SessionSummary[] }> {

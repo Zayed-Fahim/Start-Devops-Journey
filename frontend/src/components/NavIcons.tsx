@@ -96,3 +96,46 @@ export const IconCode = (
     <path d="m9 8-4 4 4 4M15 8l4 4-4 4" />
   </svg>
 );
+
+export const IconHelp = (
+  <svg {...base} className="size-5" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.6 9.5a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4" />
+    <circle cx="12" cy="17" r="0.6" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+export const IconDocs = (
+  <svg {...base} className="size-5" aria-hidden="true">
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+    <path d="M14 3v5h5M9 13h6M9 17h4" />
+  </svg>
+);
+
+export const IconBell = (
+  <svg {...base} className="size-5" aria-hidden="true">
+    <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+  </svg>
+);
+
+export const IconChevronRight = (
+  <svg {...base} className="size-4" aria-hidden="true">
+    <path d="m9 6 6 6-6 6" />
+  </svg>
+);
+
+export const IconOverview = (
+  <svg {...base} className="size-5" aria-hidden="true">
+    <rect x="3" y="3" width="7" height="9" rx="1" />
+    <rect x="14" y="3" width="7" height="5" rx="1" />
+    <rect x="14" y="12" width="7" height="9" rx="1" />
+    <rect x="3" y="16" width="7" height="5" rx="1" />
+  </svg>
+);
+
+export const IconChevronLeft = (
+  <svg {...base} className="size-5" aria-hidden="true">
+    <path d="m15 6-6 6 6 6" />
+  </svg>
+);

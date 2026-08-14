@@ -15,7 +15,8 @@ export interface NavItem {
   label: string;
   href: string;
   icon: string;
-  group: 'primary' | 'secondary';
+  group: 'top' | 'primary' | 'secondary' | 'support';
+  external?: boolean;
 }
 
 export interface SessionUser extends User {
@@ -73,6 +74,11 @@ export interface AuditLog {
   targetLabel: string | null;
   ip: string | null;
   createdAt: string;
+}
+
+export interface AuditStats {
+  total: number;
+  byCategory: Record<AuditCategory, number>;
 }
 
 export interface AuditLogsResponse {
