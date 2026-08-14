@@ -36,7 +36,7 @@ const refresh = async (req, res) => {
 };
 
 const logout = async (req, res) => {
-  await authService.logout(req.cookies?.[REFRESH_COOKIE]);
+  await authService.logout(req.cookies?.[REFRESH_COOKIE], requestContext(req));
   clearAuthCookies(res);
   res.status(204).end();
 };

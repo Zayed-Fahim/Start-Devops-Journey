@@ -19,6 +19,13 @@ enum Status {
   INACTIVE
 }
 
+enum AuditCategory {
+  CREATE
+  UPDATE
+  DELETE
+  SECURITY
+}
+
 model User {
   id       String @id @default(uuid()) @db.Uuid
   name     String @db.VarChar(120)
@@ -36,11 +43,39 @@ model User {
   updatedAt DateTime @updatedAt
 
   refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
 
   @@index([role])
   @@index([status])
   @@index([createdAt])
   @@map("users")
+}
+
+model AuditLog {
+  id String @id @default(uuid()) @db.Uuid
+
+  actorId String? @db.Uuid
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  actorLabel String        @db.VarChar(160)
+  action     String        @db.VarChar(64)
+  category   AuditCategory
+  summary    String        @db.VarChar(500)
+
+  targetType  String? @db.VarChar(32)
+  targetId    String? @db.VarChar(64)
+  targetLabel String? @db.VarChar(255)
+
+  ip        String? @db.VarChar(64)
+  userAgent String? @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([category])
+  @@index([actorId])
+  @@index([action])
+  @@map("audit_logs")
 }
 
 model RefreshToken {

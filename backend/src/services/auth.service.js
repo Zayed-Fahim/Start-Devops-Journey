@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const env = require('../lib/env');
 const { HttpError, conflict } = require('../lib/httpError');
+const audit = require('./audit.service');
 const {
   signAccessToken,
   createRefreshToken,
@@ -65,6 +66,15 @@ const register = async ({ name, email, password }, context) => {
     select: PUBLIC_USER_SELECT,
   });
 
+  await audit.record({
+    actor: user,
+    action: audit.AUDIT_ACTIONS.USER_REGISTERED,
+    category: 'CREATE',
+    summary: `${user.name} created an account`,
+    target: { type: 'user', id: user.id, label: user.email },
+    context,
+  });
+
   const tokens = await issueSession(user, { context });
   return { user, tokens };
 };
@@ -101,6 +111,19 @@ const login = async ({ email, password }, context) => {
       },
     });
 
+    await audit.record({
+      actor: { id: user.id, name: user.name },
+      action: shouldLock
+        ? audit.AUDIT_ACTIONS.AUTH_ACCOUNT_LOCKED
+        : audit.AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+      category: 'SECURITY',
+      summary: shouldLock
+        ? `${user.name} was locked out after ${env.MAX_FAILED_LOGINS} failed sign-in attempts`
+        : `${user.name} failed a sign-in attempt`,
+      target: { type: 'user', id: user.id, label: user.email },
+      context,
+    });
+
     throw invalidCredentials();
   }
 
@@ -112,6 +135,15 @@ const login = async ({ email, password }, context) => {
     where: { id: user.id },
     data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
     select: PUBLIC_USER_SELECT,
+  });
+
+  await audit.record({
+    actor: updated,
+    action: audit.AUDIT_ACTIONS.AUTH_LOGIN,
+    category: 'SECURITY',
+    summary: `${updated.name} signed in`,
+    target: { type: 'user', id: updated.id, label: updated.email },
+    context,
   });
 
   const tokens = await issueSession(updated, { context });
@@ -134,6 +166,15 @@ const rotateRefreshToken = async (presentedToken, context) => {
       where: { familyId: stored.familyId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+    await audit.record({
+      actor: stored.user,
+      action: audit.AUDIT_ACTIONS.AUTH_SESSION_REUSE,
+      category: 'SECURITY',
+      summary: `Refresh token reuse detected for ${stored.user.name}; all sessions revoked`,
+      target: { type: 'user', id: stored.user.id, label: stored.user.email },
+      context,
+    });
+
     throw new HttpError(
       401,
       'SESSION_REUSE_DETECTED',
@@ -162,12 +203,12 @@ const rotateRefreshToken = async (presentedToken, context) => {
   return { user: stored.user, tokens };
 };
 
-const logout = async (presentedToken) => {
+const logout = async (presentedToken, context) => {
   if (!presentedToken) return;
 
   const stored = await prisma.refreshToken.findUnique({
     where: { tokenHash: hashRefreshToken(presentedToken) },
-    select: { familyId: true },
+    select: { familyId: true, userId: true },
   });
 
   if (!stored) return;
@@ -175,6 +216,14 @@ const logout = async (presentedToken) => {
   await prisma.refreshToken.updateMany({
     where: { familyId: stored.familyId, revokedAt: null },
     data: { revokedAt: new Date() },
+  });
+
+  await audit.record({
+    actor: { id: stored.userId },
+    action: audit.AUDIT_ACTIONS.AUTH_LOGOUT,
+    category: 'SECURITY',
+    summary: 'Signed out',
+    context,
   });
 };
 

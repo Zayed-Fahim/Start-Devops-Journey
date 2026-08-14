@@ -38,6 +38,43 @@ export interface ApiErrorBody {
 }
 export const SORTABLE_COLUMNS = ['name', 'email', 'role', 'status', 'createdAt'] as const;
 export type SortableColumn = (typeof SORTABLE_COLUMNS)[number];
+export const AUDIT_CATEGORIES = ['CREATE', 'UPDATE', 'DELETE', 'SECURITY'] as const;
+export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
+
+export const AUDIT_RANGES = [
+  { value: '24h', label: 'Last 24 hours' },
+  { value: '7d', label: 'Last 7 days' },
+  { value: '30d', label: 'Last 30 days' },
+  { value: '90d', label: 'Last 90 days' },
+] as const;
+
+export interface AuditLog {
+  id: string;
+  actorId: string | null;
+  actorLabel: string;
+  action: string;
+  category: AuditCategory;
+  summary: string;
+  targetType: string | null;
+  targetId: string | null;
+  targetLabel: string | null;
+  ip: string | null;
+  createdAt: string;
+}
+
+export interface AuditLogsResponse {
+  data: AuditLog[];
+  meta: PageMeta;
+}
+
+export interface AuditQuery {
+  page?: string;
+  limit?: string;
+  search?: string;
+  category?: string;
+  range?: string;
+}
+
 export interface UserQuery {
   page?: string;
   limit?: string;

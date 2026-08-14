@@ -7,6 +7,7 @@ const env = require('./lib/env');
 const requestLogger = require('./middleware/requestLogger');
 const usersRoutes = require('./routes/users.routes');
 const authRoutes = require('./routes/auth.routes');
+const auditRoutes = require('./routes/audit.routes');
 const healthRoutes = require('./routes/health.routes');
 const notFoundHandler = require('./middleware/notFoundHandler');
 const errorHandler = require('./middleware/errorHandler');
@@ -72,6 +73,7 @@ app.get('/', (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/audit-logs', auditRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

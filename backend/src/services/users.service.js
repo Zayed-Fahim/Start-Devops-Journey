@@ -66,7 +66,8 @@ const updateUser = async (id, { password, ...rest }) => {
   if (password !== undefined) data.password = await hashPassword(password);
   return prisma.user.update({ where: { id }, data, select: USER_SELECT });
 };
-const deleteUser = (id) => prisma.user.delete({ where: { id }, select: { id: true } });
+const deleteUser = (id) =>
+  prisma.user.delete({ where: { id }, select: { id: true, name: true, email: true } });
 const getStats = async () => {
   const [total, roleGroups, statusGroups] = await prisma.$transaction([
     prisma.user.count(),

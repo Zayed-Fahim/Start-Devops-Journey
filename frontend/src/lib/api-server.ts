@@ -1,6 +1,13 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { UserQuery, UserStats, UsersResponse, User } from './types';
+import type {
+  UserQuery,
+  UserStats,
+  UsersResponse,
+  User,
+  AuditQuery,
+  AuditLogsResponse,
+} from './types';
 
 const INTERNAL_API_URL = process.env.INTERNAL_API_URL ?? 'http://localhost:5000';
 
@@ -69,6 +76,16 @@ export function getUsers(query: UserQuery): Promise<UsersResponse> {
 
 export function getUserStats(): Promise<UserStats> {
   return serverFetch<UserStats>('/api/users/stats');
+}
+
+export function getAuditLogs(query: AuditQuery): Promise<AuditLogsResponse> {
+  const params = new URLSearchParams();
+  (['page', 'limit', 'search', 'category', 'range'] as (keyof AuditQuery)[]).forEach((key) => {
+    const value = query[key];
+    if (value !== undefined && value !== '') params.set(key, value);
+  });
+  const qs = params.toString();
+  return serverFetch<AuditLogsResponse>(`/api/audit-logs${qs ? `?${qs}` : ''}`);
 }
 
 export async function getSessionUser(): Promise<User | null> {

@@ -6,8 +6,7 @@ import { FilterBar } from '@/components/FilterBar';
 import { UsersTable } from '@/components/UsersTable';
 import { ErrorState } from '@/components/ErrorState';
 import { AddUserButton } from '@/components/AddUserButton';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { UserMenu } from '@/components/UserMenu';
+import { TopNav } from '@/components/TopNav';
 import { ApiFetchError, getUsers, getSessionUser } from '@/lib/api-server';
 import type { UserQuery, UsersResponse } from '@/lib/types';
 
@@ -56,15 +55,7 @@ export default async function DashboardPage({
 
   return (
     <div className="min-h-screen bg-bg text-fg">
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
-          <span className="font-semibold">User Management</span>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <UserMenu user={sessionUser} />
-          </div>
-        </div>
-      </header>
+      <TopNav user={sessionUser} />
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
