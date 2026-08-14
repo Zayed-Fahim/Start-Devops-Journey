@@ -135,7 +135,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
         ) : (
           isRegister && (
             <p id={`${uid}-password-hint`} className="text-sm text-fg-muted">
-              At least 12 characters, with upper case, lower case and a number.
+              6 to 32 characters, with upper case, lower case and a number.
             </p>
           )
         )}

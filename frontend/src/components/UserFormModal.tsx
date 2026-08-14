@@ -148,7 +148,7 @@ export function UserFormModal({ open, onClose, user }: Props) {
           label={isEdit ? 'New password' : 'Password'}
           htmlFor={`${uid}-password`}
           error={fieldErrors.password}
-          hint={isEdit ? 'Leave blank to keep the current password' : 'At least 8 characters'}
+          hint={isEdit ? 'Leave blank to keep the current password' : '6 to 32 characters'}
         >
           <input
             id={`${uid}-password`}
