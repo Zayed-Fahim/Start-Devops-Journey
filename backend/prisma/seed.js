@@ -184,6 +184,9 @@ const USERS = [
 async function main() {
   console.log(`Seeding ${USERS.length} users…`);
   const password = await bcrypt.hash(PASSWORD, env.BCRYPT_ROUNDS);
+
+  const roles = await prisma.accessRole.findMany({ select: { id: true, name: true } });
+  const roleIdByName = Object.fromEntries(roles.map((role) => [role.name, role.id]));
   let created = 0;
   let updated = 0;
   for (const user of USERS) {
@@ -197,8 +200,9 @@ async function main() {
         name: user.name,
         role: user.role,
         status: user.status,
+        roleId: roleIdByName[user.role] ?? null,
       },
-      create: { ...user, password },
+      create: { ...user, password, roleId: roleIdByName[user.role] ?? null },
     });
     if (existing) updated += 1;
     else created += 1;

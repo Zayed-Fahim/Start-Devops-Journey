@@ -14,6 +14,15 @@ const USER_SELECT = Object.freeze({
   updatedAt: true,
 });
 const hashPassword = (plain) => bcrypt.hash(plain, env.BCRYPT_ROUNDS);
+
+const resolveRoleId = async (roleName) => {
+  if (!roleName) return undefined;
+  const role = await prisma.accessRole.findUnique({
+    where: { name: roleName },
+    select: { id: true },
+  });
+  return role?.id ?? null;
+};
 const escapeLike = (value) =>
   value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
 const buildWhere = ({ search, role, status }) => {
@@ -58,12 +67,17 @@ const listUsers = async ({ page, limit, search, role, status, sortBy, order }) =
 const getUserById = (id) => prisma.user.findUnique({ where: { id }, select: USER_SELECT });
 const createUser = async ({ password, ...rest }) =>
   prisma.user.create({
-    data: { ...rest, password: await hashPassword(password) },
+    data: {
+      ...rest,
+      password: await hashPassword(password),
+      roleId: await resolveRoleId(rest.role),
+    },
     select: USER_SELECT,
   });
 const updateUser = async (id, { password, ...rest }) => {
   const data = { ...rest };
   if (password !== undefined) data.password = await hashPassword(password);
+  if (rest.role !== undefined) data.roleId = await resolveRoleId(rest.role);
   return prisma.user.update({ where: { id }, data, select: USER_SELECT });
 };
 const deleteUser = (id) =>

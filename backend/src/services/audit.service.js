@@ -17,6 +17,9 @@ const AUDIT_ACTIONS = Object.freeze({
   SESSIONS_REVOKED_ALL: 'session.revoked_others',
   PASSWORD_CHANGED: 'account.password_changed',
   PASSWORD_CHANGE_FAILED: 'account.password_change_failed',
+  ROLE_CREATED: 'role.created',
+  ROLE_UPDATED: 'role.updated',
+  ROLE_DELETED: 'role.deleted',
 });
 
 const AUDIT_LOG_SELECT = Object.freeze({
