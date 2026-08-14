@@ -1,5 +1,5 @@
 {
-  "name": "start-devops-journey",
+  "name": "start-devops-journey-backend",
   "version": "1.0.0",
   "main": "src/server.js",
   "license": "MIT",
@@ -17,6 +17,7 @@
     "db:studio": "node scripts/with-db-url.js node_modules/.bin/prisma studio",
     "lint": "eslint src prisma scripts healthcheck.js",
     "lint:fix": "eslint src prisma scripts healthcheck.js --fix",
+    "test": "node tests/run.js",
     "prune:sessions": "node scripts/prune-sessions.js"
   },
   "dependencies": {
