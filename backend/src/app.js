@@ -8,6 +8,7 @@ const requestLogger = require('./middleware/requestLogger');
 const usersRoutes = require('./routes/users.routes');
 const authRoutes = require('./routes/auth.routes');
 const auditRoutes = require('./routes/audit.routes');
+const accountRoutes = require('./routes/account.routes');
 const healthRoutes = require('./routes/health.routes');
 const notFoundHandler = require('./middleware/notFoundHandler');
 const errorHandler = require('./middleware/errorHandler');
@@ -63,6 +64,7 @@ app.get('/', (_req, res) => {
     name: 'User Management API',
     endpoints: {
       auth: '/api/auth',
+      account: '/api/account',
       users: '/api/users',
       stats: '/api/users/stats',
       liveness: '/healthz',
@@ -74,6 +76,7 @@ app.get('/', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/audit-logs', auditRoutes);
+app.use('/api/account', accountRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

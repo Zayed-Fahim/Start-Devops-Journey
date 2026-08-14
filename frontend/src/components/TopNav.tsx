@@ -10,6 +10,7 @@ import { UserMenu } from './UserMenu';
 const LINKS: { href: string; label: string; adminOnly: boolean }[] = [
   { href: '/', label: 'Users', adminOnly: false },
   { href: '/audit-logs', label: 'Audit Logs', adminOnly: true },
+  { href: '/settings', label: 'Settings', adminOnly: false },
 ];
 
 export function TopNav({ user }: { user: User }) {

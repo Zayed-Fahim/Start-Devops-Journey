@@ -122,3 +122,15 @@ export const registerAccount = (name: string, email: string, password: string) =
   });
 
 export const logout = () => request<void>('/api/auth/logout', { method: 'POST' });
+
+export const changePassword = (currentPassword: string, newPassword: string) =>
+  request<{ revokedSessions: number }>('/api/account/password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+
+export const revokeSession = (id: string) =>
+  request<{ revoked: number }>(`/api/account/sessions/${id}`, { method: 'DELETE' });
+
+export const revokeOtherSessions = () =>
+  request<{ revoked: number }>('/api/account/sessions/revoke-others', { method: 'POST' });

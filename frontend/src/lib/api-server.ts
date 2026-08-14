@@ -1,6 +1,7 @@
 import 'server-only';
 import { cookies } from 'next/headers';
 import type {
+  SessionSummary,
   UserQuery,
   UserStats,
   UsersResponse,
@@ -86,6 +87,10 @@ export function getAuditLogs(query: AuditQuery): Promise<AuditLogsResponse> {
   });
   const qs = params.toString();
   return serverFetch<AuditLogsResponse>(`/api/audit-logs${qs ? `?${qs}` : ''}`);
+}
+
+export function getSessions(): Promise<{ data: SessionSummary[] }> {
+  return serverFetch<{ data: SessionSummary[] }>('/api/account/sessions');
 }
 
 export async function getSessionUser(): Promise<User | null> {

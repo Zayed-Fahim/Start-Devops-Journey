@@ -151,6 +151,11 @@ const login = async ({ email, password }, context) => {
   return { user: updated, tokens };
 };
 
+const inheritDeviceContext = (stored, context) => ({
+  userAgent: stored.userAgent ?? context?.userAgent,
+  ip: stored.ip ?? context?.ip,
+});
+
 const rotateRefreshToken = async (presentedToken, context) => {
   if (!presentedToken) throw new HttpError(401, 'NO_SESSION', 'No refresh token provided');
 
@@ -200,7 +205,7 @@ const rotateRefreshToken = async (presentedToken, context) => {
 
     const graceTokens = await issueSession(stored.user, {
       familyId: stored.familyId,
-      context,
+      context: inheritDeviceContext(stored, context),
     });
     return { user: stored.user, tokens: graceTokens };
   }
@@ -222,7 +227,10 @@ const rotateRefreshToken = async (presentedToken, context) => {
     data: { revokedAt: new Date() },
   });
 
-  const tokens = await issueSession(stored.user, { familyId: stored.familyId, context });
+  const tokens = await issueSession(stored.user, {
+    familyId: stored.familyId,
+    context: inheritDeviceContext(stored, context),
+  });
   return { user: stored.user, tokens };
 };
 

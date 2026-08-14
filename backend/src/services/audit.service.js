@@ -13,6 +13,10 @@ const AUDIT_ACTIONS = Object.freeze({
   AUTH_LOGOUT: 'auth.logout',
   AUTH_ACCOUNT_LOCKED: 'auth.account_locked',
   AUTH_SESSION_REUSE: 'auth.session_reuse_detected',
+  SESSION_REVOKED: 'session.revoked',
+  SESSIONS_REVOKED_ALL: 'session.revoked_others',
+  PASSWORD_CHANGED: 'account.password_changed',
+  PASSWORD_CHANGE_FAILED: 'account.password_change_failed',
 });
 
 const AUDIT_LOG_SELECT = Object.freeze({

@@ -75,6 +75,16 @@ export interface AuditQuery {
   range?: string;
 }
 
+export interface SessionSummary {
+  id: string;
+  device: string;
+  userAgent: string | null;
+  ip: string | null;
+  lastUsedAt: string;
+  expiresAt: string;
+  current: boolean;
+}
+
 export interface UserQuery {
   page?: string;
   limit?: string;
