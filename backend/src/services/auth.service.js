@@ -5,6 +5,7 @@ const env = require('../lib/env');
 const { HttpError, conflict } = require('../lib/httpError');
 const logger = require('../lib/logger');
 const audit = require('./audit.service');
+const { enforceSessionCap } = require('./sessionMaintenance.service');
 const {
   signAccessToken,
   createRefreshToken,
@@ -77,6 +78,7 @@ const register = async ({ name, email, password }, context) => {
   });
 
   const tokens = await issueSession(user, { context });
+  await enforceSessionCap(user.id);
   return { user, tokens };
 };
 
@@ -148,6 +150,7 @@ const login = async ({ email, password }, context) => {
   });
 
   const tokens = await issueSession(updated, { context });
+  await enforceSessionCap(updated.id);
   return { user: updated, tokens };
 };
 

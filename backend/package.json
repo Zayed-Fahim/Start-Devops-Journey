@@ -16,7 +16,8 @@
     "db:status": "node scripts/with-db-url.js node_modules/.bin/prisma migrate status",
     "db:studio": "node scripts/with-db-url.js node_modules/.bin/prisma studio",
     "lint": "eslint src prisma scripts healthcheck.js",
-    "lint:fix": "eslint src prisma scripts healthcheck.js --fix"
+    "lint:fix": "eslint src prisma scripts healthcheck.js --fix",
+    "prune:sessions": "node scripts/prune-sessions.js"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
