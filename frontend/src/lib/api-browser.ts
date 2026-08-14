@@ -1,66 +1,68 @@
-import type { ApiErrorBody, Role, Status, User } from "./types";
+import type { ApiErrorBody, Role, Status, User } from './types';
 
-/**
- * BROWSER-SIDE API access, used by Client Components for mutations.
- *
- * See the long comment in api-server.ts for the full explanation. The short
- * version: this code executes on the user's laptop, which has never heard of
- * Docker's `backend` hostname, so it must use the address that appears in the
- * URL bar — NEXT_PUBLIC_API_URL=http://localhost:3001.
- *
- * NEXT_PUBLIC_ is not a naming convention, it is a contract: Next.js finds
- * these at build time and INLINES them into the JavaScript bundle. That is why
- * it must be written out in full as `process.env.NEXT_PUBLIC_API_URL` — the
- * build-time replacement is textual, so `process.env[key]` with a computed key
- * silently yields undefined. It is also why nothing secret may ever carry this
- * prefix: it ships to every visitor.
- */
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000';
 
-/** A failed request that still carries the API's structured error body, so a
- *  form can map `details[].field` onto its inputs instead of showing one
- *  generic message. */
+const CSRF_COOKIE = 'csrf_token';
+
 export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
     readonly code?: string,
-    readonly details?: { field: string; message: string }[]
+    readonly details?: {
+      field: string;
+      message: string;
+    }[],
   ) {
     super(message);
-    this.name = "ApiError";
+    this.name = 'ApiError';
   }
 
-  /** { email: "This email is already taken" } for inline field errors. */
   fieldErrors(): Record<string, string> {
     const map: Record<string, string> = {};
-    for (const detail of this.details ?? []) {
+    (this.details ?? []).forEach((detail) => {
       if (!map[detail.field]) map[detail.field] = detail.message;
-    }
+    });
     return map;
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+function readCsrfToken(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.split('; ').find((row) => row.startsWith(`${CSRF_COOKIE}=`));
+  return match ? decodeURIComponent(match.slice(CSRF_COOKIE.length + 1)) : null;
+}
+
+async function request<T>(path: string, init: RequestInit = {}, retryOn401 = true): Promise<T> {
+  const method = (init.method ?? 'GET').toUpperCase();
+  const csrfToken = readCsrfToken();
   let res: Response;
 
   try {
     res = await fetch(`${API_URL}${path}`, {
       ...init,
+      credentials: 'include',
       headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(method !== 'GET' && csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
         ...(init.headers ?? {}),
       },
     });
   } catch {
-    // fetch() only rejects on network failure, never on a 4xx/5xx. This is
-    // also the branch a CORS rejection lands in — the browser blocks the
-    // response and reports a generic TypeError with no status.
     throw new ApiError(
-      "Could not reach the API. Is the backend running, and does CORS_ORIGIN allow this page?",
-      0
+      'Could not reach the API. Is the backend running, and does CORS_ORIGIN allow this page?',
+      0,
     );
+  }
+
+  if (res.status === 401 && retryOn401 && path !== '/api/auth/refresh') {
+    const refreshed = await fetch(`${API_URL}/api/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    });
+    if (refreshed.ok) return request<T>(path, init, false);
   }
 
   if (res.status === 204) return undefined as T;
@@ -70,8 +72,6 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     body = text ? JSON.parse(text) : null;
   } catch {
-    // A non-JSON body from an API that always speaks JSON usually means the
-    // request never reached it — a proxy or dev-server error page instead.
     throw new ApiError(`Unexpected non-JSON response (${res.status})`, res.status);
   }
 
@@ -81,7 +81,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       err?.message ?? `Request failed with status ${res.status}`,
       res.status,
       err?.code,
-      err?.details
+      err?.details,
     );
   }
 
@@ -96,17 +96,29 @@ export interface UserInput {
   status: Status;
 }
 
+export interface SessionResponse {
+  user: User;
+  csrfToken: string;
+}
+
 export const createUser = (input: UserInput) =>
-  request<User>("/api/users", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  request<User>('/api/users', { method: 'POST', body: JSON.stringify(input) });
 
 export const updateUser = (id: string, input: Partial<UserInput>) =>
-  request<User>(`/api/users/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify(input),
+  request<User>(`/api/users/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+
+export const deleteUser = (id: string) => request<void>(`/api/users/${id}`, { method: 'DELETE' });
+
+export const login = (email: string, password: string) =>
+  request<SessionResponse>('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
   });
 
-export const deleteUser = (id: string) =>
-  request<void>(`/api/users/${id}`, { method: "DELETE" });
+export const registerAccount = (name: string, email: string, password: string) =>
+  request<SessionResponse>('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ name, email, password }),
+  });
+
+export const logout = () => request<void>('/api/auth/logout', { method: 'POST' });

@@ -1,25 +1,11 @@
-// =============================================================================
-// Prisma schema — the single source of truth for the database shape.
-// =============================================================================
-// Workflow:
-//   1. edit this file
-//   2. `yarn migrate:dev --name what_changed`  -> writes SQL to prisma/migrations/
-//   3. commit the generated SQL
-//   4. `yarn migrate:deploy` runs it everywhere else (container start, CI, prod)
-//
-// NEVER `prisma db push` against a database with data. db push reconciles the
-// schema "by whatever means necessary", including dropping columns, and it
-// leaves no artifact behind — so there is no record of what changed, no way to
-// replay it, and no way to review it. Migrations are reviewable SQL files.
-// =============================================================================
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -34,38 +20,45 @@ enum Status {
 }
 
 model User {
-  // uuid rather than an auto-increment int. Sequential ids leak how many
-  // records exist and make neighbours guessable in a URL (/users/41 -> try 42).
-  // The cost is a slightly larger index; the payoff is that an id reveals
-  // nothing.
-  id String @id @default(uuid()) @db.Uuid
-
-  name  String @db.VarChar(120)
-  // @unique creates a UNIQUE INDEX, so the DATABASE rejects duplicates even if
-  // a bug bypasses application validation. Two concurrent signups with the
-  // same email cannot both win: one gets Prisma error P2002, which the error
-  // middleware turns into a 409. An application-level "check then insert" has
-  // a race between the check and the insert; a unique constraint does not.
-  email String @unique @db.VarChar(255)
-
-  // bcrypt hash, never plaintext. Excluded from every API response by the
-  // `select` clause in the service layer, so it never leaves the process.
+  id       String @id @default(uuid()) @db.Uuid
+  name     String @db.VarChar(120)
+  email    String @unique @db.VarChar(255)
   password String
 
   role   Role   @default(USER)
   status Status @default(ACTIVE)
 
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+
   createdAt DateTime @default(now())
-  // @updatedAt is maintained by Prisma on every update. Note it is NOT a
-  // database trigger: a write from psql or Adminer will not touch it.
   updatedAt DateTime @updatedAt
 
-  // Indexes follow the query patterns, they are not sprinkled hopefully.
-  // These three columns are exactly what the dashboard filters and sorts by.
+  refreshTokens RefreshToken[]
+
   @@index([role])
   @@index([status])
   @@index([createdAt])
-  // Prisma models are singular by convention, SQL tables plural. @@map keeps
-  // both idiomatic instead of forcing one to be wrong.
   @@map("users")
+}
+
+model RefreshToken {
+  id        String @id @default(uuid()) @db.Uuid
+  userId    String @db.Uuid
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String @unique
+  familyId  String @db.Uuid
+
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  userAgent String? @db.VarChar(255)
+  ip        String? @db.VarChar(64)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
 }

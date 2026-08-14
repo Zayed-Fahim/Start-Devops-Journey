@@ -1,55 +1,45 @@
-const path = require("node:path");
-const { z } = require("zod");
+const path = require('node:path');
+const { z } = require('zod');
 
-// Load a local .env file for HOST development (running `yarn dev` directly).
-// Inside Docker this is a no-op that finds nothing, because Compose already
-// injected the variables via env_file. Either way dotenv NEVER overwrites a
-// variable that is already set, so the container's real environment always
-// wins over a stale file on disk.
-const envFile = process.env.NODE_ENV === "production" ? ".env.prod" : ".env.dev";
-require("dotenv").config({ path: path.resolve(__dirname, "../..", envFile) });
+require('dotenv').config({ path: path.resolve(__dirname, '../..', '.env') });
 
 const envSchema = z.object({
-  NODE_ENV: z
-    .enum(["development", "production", "test"])
-    .default("development"),
-
-  // Read from the environment, never hardcoded. The container and the host
-  // port mapping have to agree, and that agreement belongs in configuration.
-  PORT: z.coerce.number().int().min(1).max(65535).default(3001),
-
-  DATABASE_URL: z
-    .string()
-    .min(1, "DATABASE_URL is required (postgresql://user:pass@host:5432/db)"),
-
-  // Comma-separated so you can allow more than one origin without a code
-  // change (e.g. a preview deployment alongside localhost).
-  CORS_ORIGIN: z.string().min(1).default("http://localhost:3000"),
-
-  // Cost factor. Each +1 DOUBLES the time to hash. 10 is ~50-100ms, which is
-  // slow enough to make offline brute force expensive and fast enough that a
-  // login endpoint stays usable. Configurable so tests can drop it to 4.
-  BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(10),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  PORT: z.coerce.number().int().min(1).max(65535).default(5000),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  DIRECT_URL: z.string().optional(),
+  CORS_ORIGIN: z.string().min(1).default('http://localhost:3000'),
+  BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
+  JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
+  JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
+  ACCESS_TOKEN_TTL: z.string().default('15m'),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
+  MAX_FAILED_LOGINS: z.coerce.number().int().min(3).max(20).default(5),
+  LOCKOUT_MINUTES: z.coerce.number().int().min(1).max(1440).default(15),
 });
 
 const parsed = envSchema.safeParse(process.env);
 
-// Fail at BOOT, loudly, rather than at the first request that happens to need
-// the missing value. A container that refuses to start is a visible problem;
-// a container that starts and 500s on one endpoint is a silent one.
 if (!parsed.success) {
-  console.error("✖ Invalid environment configuration:\n");
-  for (const issue of parsed.error.issues) {
-    console.error(`   ${issue.path.join(".") || "(root)"}: ${issue.message}`);
-  }
-  console.error("\nSee backend/.env.example for the full list.\n");
+  console.error('Invalid environment configuration:\n');
+  parsed.error.issues.forEach((issue) => {
+    console.error(`   ${issue.path.join('.') || '(root)'}: ${issue.message}`);
+  });
+  console.error('\nSee backend/.env.example for the full list.\n');
   process.exit(1);
 }
 
 const env = parsed.data;
 
-env.corsOrigins = env.CORS_ORIGIN.split(",")
+env.isProduction = env.NODE_ENV === 'production';
+
+env.corsOrigins = env.CORS_ORIGIN.split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
+  console.error('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different values.');
+  process.exit(1);
+}
 
 module.exports = env;
