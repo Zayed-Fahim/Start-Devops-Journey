@@ -1,134 +1,70 @@
-const http = require("http");
-const mongoose = require("mongoose");
-const { MongoClient } = require("mongodb");
+/**
+ * One-shot container healthcheck.
+ *
+ * Usage (from a Dockerfile HEALTHCHECK or a Compose healthcheck):
+ *
+ *     test: ["CMD", "node", "healthcheck.js"]
+ *
+ * WHAT A HEALTHCHECK COMMAND MUST DO: run, decide, and EXIT.
+ * Exit code 0 = healthy, anything else = unhealthy. Docker runs this command
+ * inside the container on every interval and reads only the exit status.
+ *
+ * The previous version of this file started an HTTP server on port 3002 and
+ * kept listening forever. As a healthcheck command that never exits, Docker
+ * killed it at the `timeout` every single time and recorded a failure, so the
+ * container could only ever go `starting` -> `unhealthy` -- and, because it
+ * also opened a second listener, every check leaked another process. A
+ * healthcheck must be a short-lived probe, not a service.
+ *
+ * It probes /readyz (readiness) rather than /healthz, because for the purpose
+ * of "should this container be in service" the answer must include whether the
+ * database is reachable. Note the consequence, deliberately accepted: with
+ * Compose's `restart: unless-stopped`, a container marked unhealthy is NOT
+ * restarted -- Compose has no such action -- so this is a status signal and a
+ * `depends_on: service_healthy` gate, nothing more. In Kubernetes you would
+ * wire this to a readinessProbe and point the livenessProbe at /healthz, so
+ * that a database outage removes the pod from the load balancer instead of
+ * restarting it.
+ */
 
-// Get environment variables
-const PORT = process.env.PORT || 3001;
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://mongodb:27017";
-const DB_NAME = process.env.MONGO_DB_NAME || "yourdbname";
+const http = require("node:http");
 
-// Health check configuration
-const TIMEOUT_MS = 5000;
-const HEALTHCHECK_PORT = process.env.HEALTHCHECK_PORT || 3002;
+const PORT = Number(process.env.PORT) || 3001;
+const TIMEOUT_MS = Number(process.env.HEALTHCHECK_TIMEOUT_MS) || 3000;
 
-// 1. Database Health Check
-async function checkDatabase() {
-  try {
-    // Method 1: Using Mongoose (if you use it)
-    if (mongoose.connection.readyState === 1) {
-      // Test with a simple query
-      await mongoose.connection.db.admin().ping();
-      return true;
-    }
-
-    // Method 2: Direct MongoDB driver connection
-    const client = new MongoClient(MONGODB_URI, {
-      connectTimeoutMS: TIMEOUT_MS,
-      serverSelectionTimeoutMS: TIMEOUT_MS,
+const request = http.request(
+  {
+    // 127.0.0.1, not "localhost": on a dual-stack container localhost can
+    // resolve to ::1 first, and if the server bound to IPv4 only the probe
+    // fails with ECONNREFUSED while the service is perfectly healthy.
+    host: "127.0.0.1",
+    port: PORT,
+    path: "/readyz",
+    method: "GET",
+    timeout: TIMEOUT_MS,
+  },
+  (res) => {
+    // Drain the body. Without this the response stream stays paused and the
+    // socket is never released.
+    res.resume();
+    res.on("end", () => {
+      process.exit(res.statusCode === 200 ? 0 : 1);
     });
-
-    await client.connect();
-    const db = client.db(DB_NAME);
-    await db.command({ ping: 1 });
-    await client.close();
-    return true;
-  } catch (error) {
-    console.error("Database health check failed:", error.message);
-    return false;
   }
-}
+);
 
-// 2. HTTP Server Health Check
-async function checkHttpServer() {
-  return new Promise((resolve) => {
-    const options = {
-      hostname: "localhost",
-      port: PORT,
-      path: "/health",
-      method: "GET",
-      timeout: TIMEOUT_MS,
-    };
+request.on("error", (error) => {
+  console.error(`healthcheck: ${error.message}`);
+  process.exit(1);
+});
 
-    const req = http.request(options, (res) => {
-      res.on("data", () => {});
-      res.on("end", () => {
-        resolve(res.statusCode === 200);
-      });
-    });
+request.on("timeout", () => {
+  // `timeout` fires but does NOT abort the request on its own — without an
+  // explicit destroy the socket lingers and the process hangs past the
+  // healthcheck's own timeout.
+  request.destroy();
+  console.error(`healthcheck: timed out after ${TIMEOUT_MS}ms`);
+  process.exit(1);
+});
 
-    req.on("error", () => {
-      resolve(false);
-    });
-
-    req.on("timeout", () => {
-      req.destroy();
-      resolve(false);
-    });
-
-    req.end();
-  });
-}
-
-// 3. Memory Usage Check
-function checkMemoryUsage() {
-  const maxMemory = process.env.MAX_MEMORY_MB
-    ? parseInt(process.env.MAX_MEMORY_MB) * 1024 * 1024
-    : 500 * 1024 * 1024;
-  const usedMemory = process.memoryUsage().rss;
-  return usedMemory < maxMemory;
-}
-
-// Main health check function
-async function performHealthChecks() {
-  const checks = {
-    database: await checkDatabase(),
-    httpServer: await checkHttpServer(),
-    memory: checkMemoryUsage(),
-  };
-
-  const isHealthy = Object.values(checks).every(Boolean);
-  return {
-    status: isHealthy ? "healthy" : "unhealthy",
-    checks,
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memoryUsage: process.memoryUsage(),
-  };
-}
-
-// Create a simple HTTP server for health checks
-if (process.env.NODE_ENV !== "test") {
-  const server = http.createServer(async (req, res) => {
-    if (req.url === "/health") {
-      try {
-        const healthStatus = await performHealthChecks();
-        const statusCode = healthStatus.status === "healthy" ? 200 : 503;
-
-        res.writeHead(statusCode, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(healthStatus, null, 2));
-      } catch (error) {
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify({
-            error: "Health check failed",
-            details: error.message,
-          })
-        );
-      }
-    } else {
-      res.writeHead(404);
-      res.end();
-    }
-  });
-
-  server.listen(HEALTHCHECK_PORT, () => {
-    console.log(`Health check server running on port ${HEALTHCHECK_PORT}`);
-  });
-}
-
-module.exports = {
-  checkDatabase,
-  checkHttpServer,
-  checkMemoryUsage,
-  performHealthChecks,
-};
+request.end();

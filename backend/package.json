@@ -1,18 +1,31 @@
 {
   "name": "start-devops-journey",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "src/server.js",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon src/server.js",
-    "start:dev": "node src/server.js",
-    "start:prod": "node src/server.js"
+    "build": "prisma generate",
+    "dev": "prisma generate && prisma migrate deploy && nodemon --watch src --watch prisma src/server.js",
+    "start": "nodemon --watch src src/server.js",
+    "start:dev": "prisma generate && prisma migrate deploy && nodemon --watch src src/server.js",
+    "start:prod": "prisma migrate deploy && node src/server.js",
+    "seed": "node prisma/seed.js",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:status": "prisma migrate status",
+    "studio": "prisma studio"
   },
   "dependencies": {
+    "@prisma/client": "^6.1.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "mongodb": "^6.16.0",
-    "mongoose": "^8.3.4"
+    "prisma": "^6.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
