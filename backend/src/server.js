@@ -2,9 +2,14 @@ const app = require('./app');
 const env = require('./lib/env');
 const prisma = require('./lib/prisma');
 const logger = require('./lib/logger');
+const { ensureSuperAdmin } = require('./services/superAdmin.service');
 
 const server = app.listen(env.PORT, '0.0.0.0', () => {
   logger.info({ port: env.PORT, env: env.NODE_ENV }, 'API listening');
+
+  ensureSuperAdmin().catch((error) => {
+    logger.error({ err: error }, 'super admin bootstrap failed');
+  });
 });
 let shuttingDown = false;
 const shutdown = (signal) => {

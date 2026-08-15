@@ -12,6 +12,7 @@ const envSchema = z.object({
   DB_NAME: z.string().min(1, 'DB_NAME is required'),
   DB_USER: z.string().min(1, 'DB_USER is required'),
   DB_PASSWORD: z.string().min(1, 'DB_PASSWORD is required'),
+  DB_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
 
   SUPABASE_PROJECT_URL: z.string().optional(),
   SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
@@ -29,6 +30,11 @@ const envSchema = z.object({
   REFRESH_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
   MAX_FAILED_LOGINS: z.coerce.number().int().min(3).max(20).default(5),
   LOCKOUT_MINUTES: z.coerce.number().int().min(1).max(1440).default(15),
+
+  SUPER_ADMIN_EMAIL: z.string().email().optional(),
+  SUPER_ADMIN_PASSWORD: z.string().min(8).max(72).optional(),
+  SUPER_ADMIN_NAME: z.string().min(1).max(120).default('Super Admin'),
+  SUPER_ADMIN_ROLE: z.string().min(1).max(64).default('ADMIN'),
 });
 
 const SESSION_POOLER_PORT = 5432;
