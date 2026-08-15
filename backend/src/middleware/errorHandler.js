@@ -33,9 +33,17 @@ const errorHandler = (err, req, res, next) => {
 
   switch (err.code) {
     case 'P2002': {
-      const target = Array.isArray(err.meta?.target)
+      // Prisma 7 driver adapters report the offending columns under
+      // meta.driverAdapterError.cause.constraint.fields. meta.target was the
+      // Prisma 6 location and is kept as a fallback, so this reads correctly
+      // whichever engine produced the error — without it the field name falls
+      // through to the literal "value" and the client cannot highlight a field.
+      const adapterFields = err.meta?.driverAdapterError?.cause?.constraint?.fields;
+      const legacyTarget = Array.isArray(err.meta?.target)
         ? err.meta.target
         : [err.meta?.target].filter(Boolean);
+      const target =
+        Array.isArray(adapterFields) && adapterFields.length ? adapterFields : legacyTarget;
 
       if (target.includes('email')) {
         return send(409, 'DUPLICATE_EMAIL', 'A user with this email already exists', [

@@ -10,7 +10,6 @@ const USER_CONTEXT_SELECT = Object.freeze({
 
 const loadUserContext = async (userId) => {
   const user = await prisma.user.findUnique({
-    relationLoadStrategy: 'join',
     where: { id: userId },
     select: USER_CONTEXT_SELECT,
   });

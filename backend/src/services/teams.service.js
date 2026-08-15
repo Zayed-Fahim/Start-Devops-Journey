@@ -41,7 +41,6 @@ const toMember = (row) => ({
 
 const listTeams = async () => {
   const teams = await prisma.team.findMany({
-    relationLoadStrategy: 'join',
     select: { ...TEAM_SELECT, lead: LEAD_SELECT, _count: { select: { members: true } } },
     orderBy: { name: 'asc' },
   });
@@ -51,7 +50,6 @@ const listTeams = async () => {
 const getTeam = async (id) =>
   toTeam(
     await prisma.team.findUnique({
-      relationLoadStrategy: 'join',
       where: { id },
       select: { ...TEAM_SELECT, lead: LEAD_SELECT, _count: { select: { members: true } } },
     }),
@@ -61,7 +59,6 @@ const listMembers = async (teamId, { page, limit }) => {
   const [total, rows] = await prisma.$transaction([
     prisma.teamMember.count({ where: { teamId } }),
     prisma.teamMember.findMany({
-      relationLoadStrategy: 'join',
       where: { teamId },
       select: { teamId: true, userId: true, joinedAt: true, user: { select: MEMBER_USER_SELECT } },
       orderBy: [{ user: { name: 'asc' } }, { userId: 'asc' }],
@@ -88,7 +85,6 @@ const loadMembershipContext = async (teamId, userId) => {
   const [team, user, membership] = await prisma.$transaction([
     prisma.team.findUnique({ where: { id: teamId }, select: TEAM_SELECT }),
     prisma.user.findUnique({
-      relationLoadStrategy: 'join',
       where: { id: userId },
       select: MEMBER_USER_SELECT,
     }),
@@ -116,7 +112,6 @@ const createTeam = async ({ id, name, description }, auditEntry) => {
 const updateTeam = async (id, data, auditEntry) => {
   const writes = [
     prisma.team.update({
-      relationLoadStrategy: 'join',
       where: { id },
       data,
       select: { ...TEAM_SELECT, lead: LEAD_SELECT, _count: { select: { members: true } } },
@@ -167,7 +162,6 @@ const removeMember = async (teamId, userId, wasLead, auditEntry) => {
 const setLead = async (teamId, userId, auditEntry) => {
   const writes = [
     prisma.team.update({
-      relationLoadStrategy: 'join',
       where: { id: teamId },
       data: { leadUserId: userId },
       select: { ...TEAM_SELECT, lead: LEAD_SELECT, _count: { select: { members: true } } },

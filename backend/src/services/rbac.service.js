@@ -58,7 +58,6 @@ const listPermissions = () =>
 
 const listRoles = async () => {
   const roles = await prisma.accessRole.findMany({
-    relationLoadStrategy: 'join',
     select: {
       ...ROLE_SELECT,
       permissions: { select: { permission: { select: { key: true } } } },
@@ -82,7 +81,6 @@ const listRoles = async () => {
 const getRole = async (id) =>
   toRole(
     await prisma.accessRole.findUnique({
-      relationLoadStrategy: 'join',
       where: { id },
       select: ROLE_WITH_PERMISSIONS_SELECT,
     }),
@@ -91,7 +89,6 @@ const getRole = async (id) =>
 const loadRoleForUpdate = async (id) => {
   const [role, otherManagers] = await prisma.$transaction([
     prisma.accessRole.findUnique({
-      relationLoadStrategy: 'join',
       where: { id },
       select: ROLE_WITH_PERMISSIONS_SELECT,
     }),
@@ -106,7 +103,6 @@ const loadRoleForUpdate = async (id) => {
 const loadRoleForDelete = async (id) => {
   const [role, userCount] = await prisma.$transaction([
     prisma.accessRole.findUnique({
-      relationLoadStrategy: 'join',
       where: { id },
       select: ROLE_WITH_PERMISSIONS_SELECT,
     }),
@@ -125,7 +121,6 @@ const createRole = async ({ id, name, description, permissions }, auditEntry) =>
 
   const writes = [
     prisma.accessRole.create({
-      relationLoadStrategy: 'join',
       data: {
         id,
         name,
@@ -171,7 +166,6 @@ const updateRoleDetails = async (id, { name, description }) => {
 
   return toRole(
     await prisma.accessRole.update({
-      relationLoadStrategy: 'join',
       where: { id },
       data,
       select: ROLE_WITH_PERMISSIONS_SELECT,

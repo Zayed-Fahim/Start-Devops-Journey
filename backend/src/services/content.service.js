@@ -27,7 +27,6 @@ const INDEX_SLUG = 'index';
 
 const getDocument = (kind) =>
   prisma.document.findUnique({
-    relationLoadStrategy: 'join',
     where: { kind_slug: { kind, slug: INDEX_SLUG } },
     select: DOCUMENT_SELECT,
   });
@@ -35,7 +34,6 @@ const getDocument = (kind) =>
 const upsertDocument = async (kind, { title, body }, updatedById, auditEntry) => {
   const writes = [
     prisma.document.upsert({
-      relationLoadStrategy: 'join',
       where: { kind_slug: { kind, slug: INDEX_SLUG } },
       update: { title, body, updatedById },
       create: { kind, slug: INDEX_SLUG, title, body, updatedById },
@@ -55,7 +53,6 @@ const listRequests = async ({ page, limit, status, userId }) => {
     prisma.supportRequest.count({ where }),
     prisma.supportRequest.count({ where: { ...where, status: 'OPEN' } }),
     prisma.supportRequest.findMany({
-      relationLoadStrategy: 'join',
       where,
       select: REQUEST_SELECT,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -72,7 +69,6 @@ const listRequests = async ({ page, limit, status, userId }) => {
 
 const getRequest = (id) =>
   prisma.supportRequest.findUnique({
-    relationLoadStrategy: 'join',
     where: { id },
     select: REQUEST_SELECT,
   });
@@ -80,7 +76,6 @@ const getRequest = (id) =>
 const createRequest = async ({ id, userId, subject, body }, auditEntry) => {
   const writes = [
     prisma.supportRequest.create({
-      relationLoadStrategy: 'join',
       data: { id, userId, subject, body },
       select: REQUEST_SELECT,
     }),
@@ -95,7 +90,6 @@ const setRequestStatus = async (id, status, resolverId, auditEntry) => {
   const closing = status === 'CLOSED';
   const writes = [
     prisma.supportRequest.update({
-      relationLoadStrategy: 'join',
       where: { id },
       data: {
         status,

@@ -10,6 +10,8 @@
     "start:dev": "pnpm run db:generate && pnpm run db:migrate && nodemon --watch src src/server.js",
     "start:prod": "pnpm run db:migrate && node src/server.js",
     "seed": "node prisma/seed.js",
+    "db:reset": "node scripts/reset-db.js",
+    "db:clear": "node scripts/clear-db.js",
     "db:generate": "node scripts/with-db-url.js node_modules/.bin/prisma generate",
     "db:migrate": "node scripts/with-db-url.js node_modules/.bin/prisma migrate deploy",
     "db:migrate:dev": "node scripts/with-db-url.js node_modules/.bin/prisma migrate dev",
@@ -18,21 +20,25 @@
     "lint": "eslint src prisma scripts healthcheck.js",
     "lint:fix": "eslint src prisma scripts healthcheck.js --fix",
     "test": "node tests/run.js",
-    "prune:sessions": "node scripts/prune-sessions.js"
+    "prune:sessions": "node scripts/prune-sessions.js",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,md,yaml,yml}\""
   },
   "dependencies": {
-    "@prisma/client": "^6.1.0",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "date-fns": "^4.4.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-rate-limit": "^8.6.2",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
-    "prisma": "^6.1.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -45,6 +51,7 @@
     "globals": "^17.11.0",
     "nodemon": "^3.1.7",
     "pino-pretty": "^13.1.3",
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.6",
+    "prisma": "^7.9.1"
   }
 }
