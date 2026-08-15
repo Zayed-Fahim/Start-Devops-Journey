@@ -182,6 +182,80 @@ textarea:disabled {
   cursor: not-allowed;
 }
 
+/* The base rules above carry (0,2,1) — `:not()` contributes its argument's
+   specificity — so these must repeat the same `:not()` chain to outrank them. */
+input:not([type='checkbox']):not([type='radio'])[aria-invalid='true'],
+select[aria-invalid='true'],
+textarea[aria-invalid='true'],
+[role='combobox'][aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+input:not([type='checkbox']):not([type='radio'])[aria-invalid='true']:hover:not(:disabled),
+select[aria-invalid='true']:hover:not(:disabled),
+textarea[aria-invalid='true']:hover:not(:disabled) {
+  border-color: var(--danger);
+}
+
+input:not([type='checkbox']):not([type='radio'])[aria-invalid='true']:focus,
+select[aria-invalid='true']:focus,
+textarea[aria-invalid='true']:focus,
+[role='combobox'][aria-invalid='true']:focus-visible {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 25%, transparent);
+}
+
+/* Chromium paints autofilled fields with a hardcoded light background and text
+   colour that `background-color` and `color` cannot override — it is a UA
+   appearance, not a normal declaration.
+
+   The usual inset-box-shadow mask is not enough on its own: an inset shadow is
+   clipped to the padding box, so the UA background still shows through the 1px
+   border ring as a pale rim. Chromium *animates* that background in, so an
+   effectively infinite transition delay stops it ever being applied — that is
+   what removes the rim. The inset mask stays as a fallback for engines that
+   apply the background without a transition, and background-clip keeps the
+   element's own paint off the border area. */
+input:not([type='checkbox']):not([type='radio']):-webkit-autofill,
+input:not([type='checkbox']):not([type='radio']):-webkit-autofill:hover,
+input:not([type='checkbox']):not([type='radio']):-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--fg);
+  caret-color: var(--fg);
+  background-clip: padding-box;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    background-color 9999999s ease 0s;
+  -webkit-box-shadow:
+    0 0 0 1000px var(--bg) inset,
+    0 1px 2px 0 rgb(0 0 0 / 0.06);
+  box-shadow:
+    0 0 0 1000px var(--bg) inset,
+    0 1px 2px 0 rgb(0 0 0 / 0.06);
+}
+
+input:not([type='checkbox']):not([type='radio']):-webkit-autofill:focus,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow:
+    0 0 0 1000px var(--bg) inset,
+    0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  box-shadow:
+    0 0 0 1000px var(--bg) inset,
+    0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+input:not([type='checkbox']):not([type='radio'])[aria-invalid='true']:-webkit-autofill:focus {
+  -webkit-box-shadow:
+    0 0 0 1000px var(--bg) inset,
+    0 0 0 3px color-mix(in srgb, var(--danger) 25%, transparent);
+  box-shadow:
+    0 0 0 1000px var(--bg) inset,
+    0 0 0 3px color-mix(in srgb, var(--danger) 25%, transparent);
+}
+
 input.bare:not([type='checkbox']):not([type='radio']),
 input.bare:not([type='checkbox']):not([type='radio']):hover,
 input.bare:not([type='checkbox']):not([type='radio']):focus {
@@ -251,6 +325,33 @@ select {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* Background fans on the auth screen. Driven here rather than by framer-motion:
+   the JS driver rewrote three SVG attributes per path per frame (~15k/s each
+   across 72 paths) and the repaint could not keep up, which read as flicker.
+   stroke-dashoffset interpolation costs no DOM writes at all. */
+@keyframes auth-path-travel {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: -1;
+  }
+}
+
+.auth-path {
+  stroke-dasharray: 0.35 0.65;
+  animation-name: auth-path-travel;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-path {
+    animation: none;
+    stroke-dasharray: none;
   }
 }
 

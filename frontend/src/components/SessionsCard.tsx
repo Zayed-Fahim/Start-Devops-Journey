@@ -6,13 +6,6 @@ import { ApiError, revokeOtherSessions, revokeSession } from '@/lib/api-browser'
 import type { SessionSummary, SessionUser } from '@/lib/types';
 import { formatDateTime } from '@/lib/datetime';
 
-const timeFormatter = new Intl.DateTimeFormat('en-GB', {
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-  timeZone: 'UTC',
-});
-
 export function SessionsCard({
   sessions,
   viewer,
@@ -103,8 +96,7 @@ export function SessionsCard({
                 <span>{session.ip ?? 'unknown ip'}</span>
                 <span aria-hidden="true">·</span>
                 <time dateTime={session.lastUsedAt}>
-                  {formatDateTime(session.lastUsedAt, viewer)}{' '}
-                  {timeFormatter.format(new Date(session.lastUsedAt))}
+                  {formatDateTime(session.lastUsedAt, viewer)}
                 </time>
               </p>
             </div>
