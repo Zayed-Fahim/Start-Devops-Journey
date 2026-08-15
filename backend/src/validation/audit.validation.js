@@ -1,3 +1,4 @@
+const { milliseconds } = require('date-fns');
 const { z } = require('zod');
 
 const CATEGORIES = ['CREATE', 'UPDATE', 'DELETE', 'SECURITY'];
@@ -30,7 +31,7 @@ const listAuditLogsQuerySchema = z
     const days = RANGE_DAYS[query.range];
     return {
       ...query,
-      from: new Date(Date.now() - days * 24 * 60 * 60 * 1000),
+      from: new Date(Date.now() - milliseconds({ days })),
       to: undefined,
     };
   });

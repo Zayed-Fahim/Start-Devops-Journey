@@ -1,3 +1,4 @@
+const { milliseconds } = require('date-fns');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
@@ -122,7 +123,7 @@ const login = async ({ email, password }, context) => {
       data: {
         failedLoginCount: shouldLock ? 0 : failedLoginCount,
         lockedUntil: shouldLock
-          ? new Date(Date.now() + env.LOCKOUT_MINUTES * 60 * 1000)
+          ? new Date(Date.now() + milliseconds({ minutes: env.LOCKOUT_MINUTES }))
           : user.lockedUntil,
       },
     });

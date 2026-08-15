@@ -1,3 +1,4 @@
+const { milliseconds } = require('date-fns');
 const prisma = require('../lib/prisma');
 const env = require('../lib/env');
 const logger = require('../lib/logger');
@@ -42,7 +43,7 @@ const enforceSessionCap = async (userId) => {
 const pruneRefreshTokens = async () => {
   const now = new Date();
   const retentionCutoff = new Date(
-    now.getTime() - env.REFRESH_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    now.getTime() - milliseconds({ days: env.REFRESH_RETENTION_DAYS }),
   );
 
   const expired = await prisma.refreshToken.deleteMany({

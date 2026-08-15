@@ -1,3 +1,4 @@
+const { milliseconds } = require('date-fns');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const env = require('./env');
@@ -26,7 +27,7 @@ const hashRefreshToken = (token) =>
   crypto.createHmac('sha256', env.JWT_REFRESH_SECRET).update(token).digest('hex');
 
 const refreshExpiryDate = () =>
-  new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
+  new Date(Date.now() + milliseconds({ days: env.REFRESH_TOKEN_TTL_DAYS }));
 
 const createCsrfToken = () => crypto.randomBytes(32).toString('base64url');
 
