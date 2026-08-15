@@ -2,19 +2,31 @@
 
 import { useRouter } from 'next/navigation';
 import { useId, useState } from 'react';
-import { ApiError, changePassword } from '@/lib/api-browser';
+import { useForm } from 'react-hook-form';
+import { changePassword } from '@/lib/api-browser';
+import { applyServerErrors } from '@/lib/form-errors';
 import { cn } from '@/lib/utils';
+import { PasswordInput } from './PasswordInput';
+
+interface PasswordValues {
+  currentPassword: string;
+  newPassword: string;
+}
 
 export function ChangePasswordCard() {
   const router = useRouter();
   const uid = useId();
-
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    setError,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<PasswordValues>({
+    defaultValues: { currentPassword: '', newPassword: '' },
+  });
 
   const inputClass = (hasError: boolean) =>
     cn(
@@ -22,17 +34,11 @@ export function ChangePasswordCard() {
       hasError ? 'border-danger' : 'border-border focus-visible:border-accent',
     );
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setFieldErrors({});
-    setFormError(null);
+  const onSubmit = handleSubmit(async (values) => {
     setSuccess(null);
-
     try {
-      const result = await changePassword(currentPassword, newPassword);
-      setCurrentPassword('');
-      setNewPassword('');
+      const result = await changePassword(values.currentPassword, values.newPassword);
+      reset();
       setSuccess(
         result.revokedSessions > 0
           ? `Password updated. ${result.revokedSessions} other session${
@@ -42,17 +48,9 @@ export function ChangePasswordCard() {
       );
       router.refresh();
     } catch (error) {
-      if (error instanceof ApiError) {
-        const mapped = error.fieldErrors();
-        setFieldErrors(mapped);
-        if (Object.keys(mapped).length === 0) setFormError(error.message);
-      } else {
-        setFormError('Something went wrong. Please try again.');
-      }
-    } finally {
-      setSubmitting(false);
+      applyServerErrors(error, setError, ['currentPassword', 'newPassword']);
     }
-  };
+  });
 
   return (
     <section className="rounded-lg border border-border bg-surface">
@@ -63,13 +61,13 @@ export function ChangePasswordCard() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 p-6" noValidate>
-        {formError && (
+      <form onSubmit={onSubmit} className="space-y-4 p-6" noValidate>
+        {errors.root && (
           <div
             role="alert"
             className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger"
           >
-            {formError}
+            {errors.root.message}
           </div>
         )}
         {success && (
@@ -86,20 +84,17 @@ export function ChangePasswordCard() {
             <label htmlFor={`${uid}-current`} className="block text-sm font-medium">
               Current password
             </label>
-            <input
+            <PasswordInput
               id={`${uid}-current`}
-              type="password"
-              value={currentPassword}
-              onChange={(event) => setCurrentPassword(event.target.value)}
-              required
+              {...register('currentPassword', { required: 'Your current password is required.' })}
               autoComplete="current-password"
-              aria-invalid={Boolean(fieldErrors.currentPassword)}
-              aria-describedby={fieldErrors.currentPassword ? `${uid}-current-error` : undefined}
-              className={inputClass(Boolean(fieldErrors.currentPassword))}
+              aria-invalid={Boolean(errors.currentPassword)}
+              aria-describedby={errors.currentPassword ? `${uid}-current-error` : undefined}
+              className={inputClass(Boolean(errors.currentPassword))}
             />
-            {fieldErrors.currentPassword && (
+            {errors.currentPassword && (
               <p id={`${uid}-current-error`} className="text-sm text-danger">
-                {fieldErrors.currentPassword}
+                {errors.currentPassword.message}
               </p>
             )}
           </div>
@@ -108,20 +103,17 @@ export function ChangePasswordCard() {
             <label htmlFor={`${uid}-new`} className="block text-sm font-medium">
               New password
             </label>
-            <input
+            <PasswordInput
               id={`${uid}-new`}
-              type="password"
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              required
+              {...register('newPassword', { required: 'A new password is required.' })}
               autoComplete="new-password"
-              aria-invalid={Boolean(fieldErrors.newPassword)}
-              aria-describedby={fieldErrors.newPassword ? `${uid}-new-error` : `${uid}-new-hint`}
-              className={inputClass(Boolean(fieldErrors.newPassword))}
+              aria-invalid={Boolean(errors.newPassword)}
+              aria-describedby={errors.newPassword ? `${uid}-new-error` : `${uid}-new-hint`}
+              className={inputClass(Boolean(errors.newPassword))}
             />
-            {fieldErrors.newPassword ? (
+            {errors.newPassword ? (
               <p id={`${uid}-new-error`} className="text-sm text-danger">
-                {fieldErrors.newPassword}
+                {errors.newPassword.message}
               </p>
             ) : (
               <p id={`${uid}-new-hint`} className="text-body-sm text-fg-muted">
@@ -134,10 +126,10 @@ export function ChangePasswordCard() {
         <div className="flex justify-end">
           <button
             type="submit"
-            disabled={submitting}
+            disabled={isSubmitting}
             className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:opacity-90 disabled:opacity-60"
           >
-            {submitting ? 'Updating…' : 'Update password'}
+            {isSubmitting ? 'Updating…' : 'Update password'}
           </button>
         </div>
       </form>

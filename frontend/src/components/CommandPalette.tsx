@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import type { NavItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
@@ -40,15 +41,20 @@ interface Command {
 export function CommandPalette({ items }: { items: NavItem[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [term, setTerm] = useState('');
   const [cursor, setCursor] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const { register, control, setValue } = useForm<{ term: string }>({
+    defaultValues: { term: '' },
+  });
+  const term = useWatch({ control, name: 'term' });
+  const { ref: registerTermRef, onChange: onTermChange, ...termField } = register('term');
+
   const close = useCallback(() => {
     setOpen(false);
-    setTerm('');
+    setValue('term', '');
     setCursor(0);
-  }, []);
+  }, [setValue]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -174,10 +180,13 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
               {IconSearch}
             </span>
             <input
-              ref={inputRef}
-              value={term}
+              {...termField}
+              ref={(node) => {
+                registerTermRef(node);
+                inputRef.current = node;
+              }}
               onChange={(event) => {
-                setTerm(event.target.value);
+                onTermChange(event);
                 setCursor(0);
               }}
               onKeyDown={onKeyDown}
@@ -189,7 +198,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
               <button
                 type="button"
                 onClick={() => {
-                  setTerm('');
+                  setValue('term', '');
                   setCursor(0);
                   inputRef.current?.focus();
                 }}

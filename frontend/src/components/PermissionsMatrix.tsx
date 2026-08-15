@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Fragment, startTransition, useEffect, useState, useSyncExternalStore } from 'react';
+import { useForm } from 'react-hook-form';
 import { ApiError, createRole, deleteRole, updateRole } from '@/lib/api-browser';
 import type { PermissionDef, RoleSummary } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -127,6 +128,11 @@ function isDraft(role: RoleSummary) {
   return role.id.startsWith(DRAFT_PREFIX);
 }
 
+interface RoleValues {
+  name: string;
+  description: string;
+}
+
 export function PermissionsMatrix({
   roles,
   permissions,
@@ -142,8 +148,14 @@ export function PermissionsMatrix({
 
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newDescription, setNewDescription] = useState('');
+
+  const {
+    register: registerRole,
+    handleSubmit: handleRoleSubmit,
+    reset: resetRole,
+    setValue: setRoleValue,
+    formState: { errors: roleErrors },
+  } = useForm<RoleValues>({ defaultValues: { name: '', description: '' } });
 
   useEffect(() => {
     store.prune(
@@ -220,11 +232,9 @@ export function PermissionsMatrix({
     runQueued(role.id, () => deleteRole(role.id));
   };
 
-  const submitNewRole = (event: React.FormEvent) => {
-    event.preventDefault();
-    const name = newName.trim();
-    const description = newDescription.trim();
-    if (!name) return;
+  const submitNewRole = handleRoleSubmit((values) => {
+    const name = values.name.trim();
+    const description = values.description.trim();
 
     const draftId = store.nextDraftId();
     store.setDrafts([
@@ -243,8 +253,7 @@ export function PermissionsMatrix({
 
     setError(null);
     setCreating(false);
-    setNewName('');
-    setNewDescription('');
+    resetRole();
 
     runQueued(draftId, async () => {
       try {
@@ -259,12 +268,12 @@ export function PermissionsMatrix({
         ]);
       } catch (cause) {
         setCreating(true);
-        setNewName((previous) => previous || name);
-        setNewDescription((previous) => previous || description);
+        setRoleValue('name', name);
+        setRoleValue('description', description);
         throw cause;
       }
     });
-  };
+  });
 
   const grouped = groupPermissions(permissions);
   const savingCount = overlay.busy.size;
@@ -414,20 +423,27 @@ export function PermissionsMatrix({
       {canManage && (
         <div className="rounded-lg border border-border bg-surface p-4">
           {creating ? (
-            <form onSubmit={submitNewRole} className="flex flex-wrap items-end gap-3">
+            <form onSubmit={submitNewRole} className="flex flex-wrap items-end gap-3" noValidate>
               <div className="space-y-1.5">
                 <label htmlFor="new-role-name" className="block text-sm font-medium">
                   Role name
                 </label>
                 <input
                   id="new-role-name"
-                  value={newName}
-                  onChange={(event) => setNewName(event.target.value)}
-                  required
-                  maxLength={64}
+                  {...registerRole('name', {
+                    required: 'A role name is required.',
+                    maxLength: { value: 64, message: 'Name must be 64 characters or fewer.' },
+                  })}
                   placeholder="Auditor"
+                  aria-invalid={Boolean(roleErrors.name)}
+                  aria-describedby={roleErrors.name ? 'new-role-name-error' : undefined}
                   className="h-10 rounded-lg border border-border bg-bg px-3 text-sm focus-visible:border-accent"
                 />
+                {roleErrors.name && (
+                  <p id="new-role-name-error" className="text-label-sm text-danger">
+                    {roleErrors.name.message}
+                  </p>
+                )}
               </div>
               <div className="min-w-48 flex-1 space-y-1.5">
                 <label htmlFor="new-role-description" className="block text-sm font-medium">
@@ -435,12 +451,24 @@ export function PermissionsMatrix({
                 </label>
                 <input
                   id="new-role-description"
-                  value={newDescription}
-                  onChange={(event) => setNewDescription(event.target.value)}
-                  maxLength={255}
+                  {...registerRole('description', {
+                    maxLength: {
+                      value: 255,
+                      message: 'Description must be 255 characters or fewer.',
+                    },
+                  })}
                   placeholder="What is this role for?"
+                  aria-invalid={Boolean(roleErrors.description)}
+                  aria-describedby={
+                    roleErrors.description ? 'new-role-description-error' : undefined
+                  }
                   className="h-10 w-full rounded-lg border border-border bg-bg px-3 text-sm focus-visible:border-accent"
                 />
+                {roleErrors.description && (
+                  <p id="new-role-description-error" className="text-label-sm text-danger">
+                    {roleErrors.description.message}
+                  </p>
+                )}
               </div>
               <button
                 type="submit"

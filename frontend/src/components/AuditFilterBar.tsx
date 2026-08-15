@@ -1,9 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useQueryParams } from '@/lib/useQueryParams';
 import { AUDIT_CATEGORIES, AUDIT_RANGES } from '@/lib/types';
 import { Select } from './Select';
+
+interface AuditFilterValues {
+  search: string;
+  category: string;
+  range: string;
+}
 
 export function AuditFilterBar() {
   const { searchParams, setParams } = useQueryParams();
@@ -12,13 +19,23 @@ export function AuditFilterBar() {
   const category = searchParams.get('category') ?? '';
   const range = searchParams.get('range') ?? '30d';
 
-  const [search, setSearch] = useState(urlSearch);
-  const [syncedSearch, setSyncedSearch] = useState(urlSearch);
+  const { register, control, setValue } = useForm<AuditFilterValues>({
+    defaultValues: { search: urlSearch, category, range },
+  });
 
-  if (urlSearch !== syncedSearch) {
-    setSyncedSearch(urlSearch);
-    setSearch(urlSearch);
-  }
+  const search = useWatch({ control, name: 'search' });
+
+  useEffect(() => {
+    setValue('search', urlSearch);
+  }, [urlSearch, setValue]);
+
+  useEffect(() => {
+    setValue('category', category);
+  }, [category, setValue]);
+
+  useEffect(() => {
+    setValue('range', range);
+  }, [range, setValue]);
 
   useEffect(() => {
     if (search === urlSearch) return undefined;
@@ -42,32 +59,49 @@ export function AuditFilterBar() {
         </svg>
         <input
           type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          {...register('search')}
           placeholder="Filter by user, action, or target…"
           aria-label="Filter audit logs by user, action or target"
           className="h-10 w-full rounded-lg border border-border bg-bg pl-9 pr-3 text-sm text-fg placeholder:text-fg-muted focus-visible:border-accent"
         />
       </div>
 
-      <Select
-        value={category}
-        onChange={(next) => setParams({ category: next, page: undefined })}
-        label="Filter by category"
-        placeholder="All categories"
-        className="sm:w-48"
-        options={[
-          { value: '', label: 'All categories' },
-          ...AUDIT_CATEGORIES.map((value) => ({ value, label: value })),
-        ]}
+      <Controller
+        control={control}
+        name="category"
+        render={({ field }) => (
+          <Select
+            value={field.value}
+            onChange={(next) => {
+              field.onChange(next);
+              setParams({ category: next, page: undefined });
+            }}
+            label="Filter by category"
+            placeholder="All categories"
+            className="sm:w-48"
+            options={[
+              { value: '', label: 'All categories' },
+              ...AUDIT_CATEGORIES.map((value) => ({ value, label: value })),
+            ]}
+          />
+        )}
       />
 
-      <Select
-        value={range}
-        onChange={(next) => setParams({ range: next, page: undefined })}
-        label="Time range"
-        className="sm:w-48"
-        options={AUDIT_RANGES.map((option) => ({ value: option.value, label: option.label }))}
+      <Controller
+        control={control}
+        name="range"
+        render={({ field }) => (
+          <Select
+            value={field.value}
+            onChange={(next) => {
+              field.onChange(next);
+              setParams({ range: next, page: undefined });
+            }}
+            label="Time range"
+            className="sm:w-48"
+            options={AUDIT_RANGES.map((option) => ({ value: option.value, label: option.label }))}
+          />
+        )}
       />
 
       {(urlSearch || category || range !== '30d') && (

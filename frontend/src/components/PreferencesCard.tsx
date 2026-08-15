@@ -2,10 +2,18 @@
 
 import { useRouter } from 'next/navigation';
 import { startTransition, useId, useState } from 'react';
-import { ApiError, savePreferences } from '@/lib/api-browser';
+import { Controller, useForm, useWatch } from 'react-hook-form';
+import { savePreferences } from '@/lib/api-browser';
 import { browserTimezone, formatDateTime, formatZoneLabel } from '@/lib/datetime';
+import { applyServerErrors } from '@/lib/form-errors';
 import type { SessionUser, TimeFormat } from '@/lib/types';
 import { Select } from './Select';
+
+interface PreferenceValues {
+  country: string;
+  timezone: string;
+  timeFormat: TimeFormat;
+}
 
 const COUNTRIES = [
   { value: '', label: 'Not set' },
@@ -34,30 +42,40 @@ const zoneOptions = (current: string | null) => {
 export function PreferencesCard({ user }: { user: SessionUser }) {
   const router = useRouter();
   const uid = useId();
-  const [country, setCountry] = useState(user.country ?? '');
-  const [timezone, setTimezone] = useState(user.timezone ?? browserTimezone());
-  const [timeFormat, setTimeFormat] = useState<TimeFormat>(user.timeFormat ?? 'H24');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const preview = { timezone, timeFormat };
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<PreferenceValues>({
+    defaultValues: {
+      country: user.country ?? '',
+      timezone: user.timezone ?? browserTimezone(),
+      timeFormat: user.timeFormat ?? 'H24',
+    },
+  });
 
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSaving(true);
-    setError(null);
+  const preview = {
+    timezone: useWatch({ control, name: 'timezone' }),
+    timeFormat: useWatch({ control, name: 'timeFormat' }),
+  };
+
+  const submit = handleSubmit(async (values) => {
     setSaved(false);
     try {
-      await savePreferences({ country: country || null, timezone: timezone || null, timeFormat });
+      await savePreferences({
+        country: values.country || null,
+        timezone: values.timezone || null,
+        timeFormat: values.timeFormat,
+      });
       setSaved(true);
       startTransition(() => router.refresh());
-    } catch (cause) {
-      setError(cause instanceof ApiError ? cause.message : 'Could not save your preferences.');
-    } finally {
-      setSaving(false);
+    } catch (error) {
+      applyServerErrors(error, setError, ['country', 'timezone', 'timeFormat']);
     }
-  };
+  });
 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-surface">
@@ -68,16 +86,16 @@ export function PreferencesCard({ user }: { user: SessionUser }) {
         </p>
       </div>
 
-      <form onSubmit={submit} className="space-y-4 p-4">
-        {error && (
+      <form onSubmit={submit} className="space-y-4 p-4" noValidate>
+        {errors.root && (
           <div
             role="alert"
             className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-body-sm text-danger"
           >
-            {error}
+            {errors.root.message}
           </div>
         )}
-        {saved && !error && (
+        {saved && !errors.root && (
           <div
             role="status"
             className="rounded-lg border border-success/30 bg-success/5 px-3 py-2 text-body-sm text-success"
@@ -91,12 +109,18 @@ export function PreferencesCard({ user }: { user: SessionUser }) {
             <label htmlFor={`${uid}-country`} className="block text-label-md">
               Country
             </label>
-            <Select
-              id={`${uid}-country`}
-              value={country}
-              onChange={setCountry}
-              label="Country"
-              options={COUNTRIES}
+            <Controller
+              control={control}
+              name="country"
+              render={({ field }) => (
+                <Select
+                  id={`${uid}-country`}
+                  value={field.value}
+                  onChange={field.onChange}
+                  label="Country"
+                  options={COUNTRIES}
+                />
+              )}
             />
           </div>
 
@@ -104,12 +128,18 @@ export function PreferencesCard({ user }: { user: SessionUser }) {
             <label htmlFor={`${uid}-timezone`} className="block text-label-md">
               Timezone
             </label>
-            <Select
-              id={`${uid}-timezone`}
-              value={timezone}
-              onChange={setTimezone}
-              label="Timezone"
-              options={zoneOptions(user.timezone)}
+            <Controller
+              control={control}
+              name="timezone"
+              render={({ field }) => (
+                <Select
+                  id={`${uid}-timezone`}
+                  value={field.value}
+                  onChange={field.onChange}
+                  label="Timezone"
+                  options={zoneOptions(user.timezone)}
+                />
+              )}
             />
           </div>
 
@@ -117,15 +147,21 @@ export function PreferencesCard({ user }: { user: SessionUser }) {
             <label htmlFor={`${uid}-format`} className="block text-label-md">
               Time format
             </label>
-            <Select
-              id={`${uid}-format`}
-              value={timeFormat}
-              onChange={(next) => setTimeFormat(next as TimeFormat)}
-              label="Time format"
-              options={[
-                { value: 'H24', label: '24 hour (14:30)' },
-                { value: 'H12', label: '12 hour (2:30 PM)' },
-              ]}
+            <Controller
+              control={control}
+              name="timeFormat"
+              render={({ field }) => (
+                <Select
+                  id={`${uid}-format`}
+                  value={field.value}
+                  onChange={(next) => field.onChange(next as TimeFormat)}
+                  label="Time format"
+                  options={[
+                    { value: 'H24', label: '24 hour (14:30)' },
+                    { value: 'H12', label: '12 hour (2:30 PM)' },
+                  ]}
+                />
+              )}
             />
           </div>
 
@@ -141,10 +177,10 @@ export function PreferencesCard({ user }: { user: SessionUser }) {
           <p className="text-label-sm text-fg-muted">{formatZoneLabel(preview)}</p>
           <button
             type="submit"
-            disabled={saving}
+            disabled={isSubmitting}
             className="rounded-lg bg-accent px-4 py-2 text-label-md text-accent-fg transition-opacity hover:opacity-90 disabled:opacity-60"
           >
-            {saving ? 'Saving…' : 'Save preferences'}
+            {isSubmitting ? 'Saving…' : 'Save preferences'}
           </button>
         </div>
       </form>

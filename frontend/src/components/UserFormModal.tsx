@@ -1,11 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useId, useState } from 'react';
-import { ApiError, createUser, updateUser, type UserInput } from '@/lib/api-browser';
+import { useId } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { createUser, updateUser, type UserInput } from '@/lib/api-browser';
+import { applyServerErrors } from '@/lib/form-errors';
 import { STATUSES, type Role, type Status, type User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Modal } from './Modal';
+import { PasswordInput } from './PasswordInput';
 import { Select } from './Select';
 
 const LEAST_PRIVILEGED_ROLE = 'USER';
@@ -16,6 +19,15 @@ interface Props {
   roles: string[];
   user?: User;
 }
+
+interface UserValues {
+  name: string;
+  email: string;
+  password: string;
+  role: Role;
+  status: Status;
+}
+
 function Field({
   label,
   htmlFor,
@@ -49,6 +61,7 @@ function Field({
     </div>
   );
 }
+
 export function UserFormModal({ open, onClose, roles, user }: Props) {
   const router = useRouter();
   const isEdit = Boolean(user);
@@ -57,17 +70,25 @@ export function UserFormModal({ open, onClose, roles, user }: Props) {
   const fallbackRole = options.includes(LEAST_PRIVILEGED_ROLE)
     ? LEAST_PRIVILEGED_ROLE
     : (options.at(-1) ?? '');
-  const [name, setName] = useState(user?.name ?? '');
-  const [email, setEmail] = useState(user?.email ?? '');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState<Role>(user?.role ?? fallbackRole);
-  const [status, setStatus] = useState<Status>(user?.status ?? 'ACTIVE');
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [formError, setFormError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<UserValues>({
+    defaultValues: {
+      name: user?.name ?? '',
+      email: user?.email ?? '',
+      password: '',
+      role: user?.role ?? fallbackRole,
+      status: user?.status ?? 'ACTIVE',
+    },
+  });
 
   let submitLabel = 'Create user';
-  if (submitting) submitLabel = 'Saving…';
+  if (isSubmitting) submitLabel = 'Saving…';
   else if (isEdit) submitLabel = 'Save changes';
 
   const inputClass = (hasError: boolean) =>
@@ -75,33 +96,28 @@ export function UserFormModal({ open, onClose, roles, user }: Props) {
       'h-10 w-full rounded-lg border bg-bg px-3 text-sm text-fg placeholder:text-fg-muted',
       hasError ? 'border-danger' : 'border-border focus-visible:border-accent',
     );
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setFieldErrors({});
-    setFormError(null);
+
+  const onSubmit = handleSubmit(async (values) => {
     try {
       if (isEdit && user) {
-        const patch: Partial<UserInput> = { name, email, role, status };
-        if (password) patch.password = password;
+        const patch: Partial<UserInput> = {
+          name: values.name,
+          email: values.email,
+          role: values.role,
+          status: values.status,
+        };
+        if (values.password) patch.password = values.password;
         await updateUser(user.id, patch);
       } else {
-        await createUser({ name, email, password, role, status });
+        await createUser(values);
       }
       router.refresh();
       onClose();
     } catch (error) {
-      if (error instanceof ApiError) {
-        const mapped = error.fieldErrors();
-        setFieldErrors(mapped);
-        if (Object.keys(mapped).length === 0) setFormError(error.message);
-      } else {
-        setFormError('Something went wrong. Please try again.');
-      }
-    } finally {
-      setSubmitting(false);
+      applyServerErrors(error, setError, ['name', 'email', 'password', 'role', 'status']);
     }
-  };
+  });
+
   return (
     <Modal
       open={open}
@@ -113,86 +129,95 @@ export function UserFormModal({ open, onClose, roles, user }: Props) {
           : 'Create a new user record.'
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        {formError && (
+      <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        {errors.root && (
           <div
             role="alert"
             className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger"
           >
-            {formError}
+            {errors.root.message}
           </div>
         )}
 
-        <Field label="Name" htmlFor={`${uid}-name`} error={fieldErrors.name}>
+        <Field label="Name" htmlFor={`${uid}-name`} error={errors.name?.message}>
           <input
             id={`${uid}-name`}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            required
-            maxLength={120}
+            {...register('name', {
+              required: 'Name is required.',
+              maxLength: { value: 120, message: 'Name must be 120 characters or fewer.' },
+            })}
             autoComplete="name"
-            aria-invalid={Boolean(fieldErrors.name)}
-            aria-describedby={fieldErrors.name ? `${uid}-name-error` : undefined}
-            className={inputClass(Boolean(fieldErrors.name))}
+            aria-invalid={Boolean(errors.name)}
+            aria-describedby={errors.name ? `${uid}-name-error` : undefined}
+            className={inputClass(Boolean(errors.name))}
           />
         </Field>
 
-        <Field label="Email" htmlFor={`${uid}-email`} error={fieldErrors.email}>
+        <Field label="Email" htmlFor={`${uid}-email`} error={errors.email?.message}>
           <input
             id={`${uid}-email`}
             type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-            maxLength={255}
+            {...register('email', {
+              required: 'Email is required.',
+              maxLength: { value: 255, message: 'Email must be 255 characters or fewer.' },
+            })}
             autoComplete="email"
-            aria-invalid={Boolean(fieldErrors.email)}
-            aria-describedby={fieldErrors.email ? `${uid}-email-error` : undefined}
-            className={cn(inputClass(Boolean(fieldErrors.email)), 'font-mono')}
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? `${uid}-email-error` : undefined}
+            className={cn(inputClass(Boolean(errors.email)), 'font-mono')}
           />
         </Field>
 
         <Field
           label={isEdit ? 'New password' : 'Password'}
           htmlFor={`${uid}-password`}
-          error={fieldErrors.password}
+          error={errors.password?.message}
           hint={isEdit ? 'Leave blank to keep the current password' : '6 to 32 characters'}
         >
-          <input
+          <PasswordInput
             id={`${uid}-password`}
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required={!isEdit}
+            {...register('password', {
+              required: isEdit ? false : 'Password is required.',
+            })}
             autoComplete="new-password"
-            aria-invalid={Boolean(fieldErrors.password)}
-            aria-describedby={
-              fieldErrors.password ? `${uid}-password-error` : `${uid}-password-hint`
-            }
-            className={inputClass(Boolean(fieldErrors.password))}
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? `${uid}-password-error` : `${uid}-password-hint`}
+            className={inputClass(Boolean(errors.password))}
           />
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Role" htmlFor={`${uid}-role`} error={fieldErrors.role}>
-            <Select
-              id={`${uid}-role`}
-              value={role}
-              onChange={(next) => setRole(next as Role)}
-              label="Role"
-              invalid={Boolean(fieldErrors.role)}
-              options={options.map((value) => ({ value, label: value }))}
+          <Field label="Role" htmlFor={`${uid}-role`} error={errors.role?.message}>
+            <Controller
+              control={control}
+              name="role"
+              render={({ field }) => (
+                <Select
+                  id={`${uid}-role`}
+                  value={field.value}
+                  onChange={field.onChange}
+                  label="Role"
+                  invalid={Boolean(errors.role)}
+                  options={options.map((value) => ({ value, label: value }))}
+                />
+              )}
             />
           </Field>
 
-          <Field label="Status" htmlFor={`${uid}-status`} error={fieldErrors.status}>
-            <Select
-              id={`${uid}-status`}
-              value={status}
-              onChange={(next) => setStatus(next as Status)}
-              label="Status"
-              invalid={Boolean(fieldErrors.status)}
-              options={STATUSES.map((value) => ({ value, label: value }))}
+          <Field label="Status" htmlFor={`${uid}-status`} error={errors.status?.message}>
+            <Controller
+              control={control}
+              name="status"
+              render={({ field }) => (
+                <Select
+                  id={`${uid}-status`}
+                  value={field.value}
+                  onChange={(next) => field.onChange(next as Status)}
+                  label="Status"
+                  invalid={Boolean(errors.status)}
+                  options={STATUSES.map((value) => ({ value, label: value }))}
+                />
+              )}
             />
           </Field>
         </div>
@@ -207,7 +232,7 @@ export function UserFormModal({ open, onClose, roles, user }: Props) {
           </button>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={isSubmitting}
             className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:opacity-90 disabled:opacity-60"
           >
             {submitLabel}

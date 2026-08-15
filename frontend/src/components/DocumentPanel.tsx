@@ -2,11 +2,18 @@
 
 import { useRouter } from 'next/navigation';
 import { startTransition, useId, useState } from 'react';
-import { ApiError, saveDocumentPage } from '@/lib/api-browser';
+import { useForm, useWatch } from 'react-hook-form';
+import { saveDocumentPage } from '@/lib/api-browser';
 import { formatDateTime } from '@/lib/datetime';
+import { applyServerErrors } from '@/lib/form-errors';
 import { renderMarkdown } from '@/lib/markdown';
 import type { DocumentPage, SessionUser } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
+interface DocumentValues {
+  title: string;
+  body: string;
+}
 
 export function DocumentPanel({
   kind,
@@ -20,35 +27,37 @@ export function DocumentPanel({
   const router = useRouter();
   const uid = useId();
   const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState(page.title);
-  const [body, setBody] = useState(page.body);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState(false);
 
+  const {
+    register,
+    handleSubmit,
+    setError,
+    reset,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<DocumentValues>({
+    defaultValues: { title: page.title, body: page.body },
+  });
+
+  const draftBody = useWatch({ control, name: 'body' });
+
   const cancel = () => {
-    setTitle(page.title);
-    setBody(page.body);
-    setError(null);
+    reset({ title: page.title, body: page.body });
     setPreview(false);
     setEditing(false);
   };
 
-  const save = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSaving(true);
-    setError(null);
+  const onSubmit = handleSubmit(async (values) => {
     try {
-      await saveDocumentPage(kind, { title: title.trim(), body: body.trim() });
+      await saveDocumentPage(kind, { title: values.title.trim(), body: values.body.trim() });
       setEditing(false);
       setPreview(false);
       startTransition(() => router.refresh());
-    } catch (cause) {
-      setError(cause instanceof ApiError ? cause.message : 'Could not save the page.');
-    } finally {
-      setSaving(false);
+    } catch (error) {
+      applyServerErrors(error, setError, ['title', 'body']);
     }
-  };
+  });
 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-surface">
@@ -94,36 +103,37 @@ export function DocumentPanel({
             <button
               type="submit"
               form={`${uid}-form`}
-              disabled={saving}
+              disabled={isSubmitting}
               className="rounded-lg bg-accent px-3 py-1.5 text-label-md text-accent-fg transition-opacity hover:opacity-90 disabled:opacity-60"
             >
-              {saving ? 'Saving…' : 'Save'}
+              {isSubmitting ? 'Saving…' : 'Save'}
             </button>
           </div>
         )}
       </div>
 
-      {error && (
+      {(errors.root ?? errors.title ?? errors.body) && (
         <div
           role="alert"
           className="border-b border-danger/30 bg-danger/5 px-4 py-2 text-body-sm text-danger"
         >
-          {error}
+          {(errors.root ?? errors.title ?? errors.body)?.message}
         </div>
       )}
 
       {editing ? (
-        <form id={`${uid}-form`} onSubmit={save} className="space-y-4 p-4">
+        <form id={`${uid}-form`} onSubmit={onSubmit} className="space-y-4 p-4" noValidate>
           <div className="space-y-1.5">
             <label htmlFor={`${uid}-title`} className="block text-label-md">
               Title
             </label>
             <input
               id={`${uid}-title`}
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              required
-              maxLength={160}
+              {...register('title', {
+                required: 'A title is required.',
+                maxLength: { value: 160, message: 'Title must be 160 characters or fewer.' },
+              })}
+              aria-invalid={Boolean(errors.title)}
               className="h-10 w-full rounded-lg px-3 text-body-sm"
             />
           </div>
@@ -132,20 +142,25 @@ export function DocumentPanel({
             <label htmlFor={`${uid}-body`} className="block text-label-md">
               Content
             </label>
-            {preview ? (
-              <div
-                className="prose-page min-h-64 rounded-lg border border-border bg-bg p-4"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(body) }}
-              />
-            ) : (
+            <div className={cn(preview && 'hidden')}>
               <textarea
                 id={`${uid}-body`}
-                value={body}
-                onChange={(event) => setBody(event.target.value)}
-                required
-                maxLength={20000}
+                {...register('body', {
+                  required: 'Content cannot be empty.',
+                  maxLength: {
+                    value: 20000,
+                    message: 'Content must be 20000 characters or fewer.',
+                  },
+                })}
                 rows={16}
+                aria-invalid={Boolean(errors.body)}
                 className="w-full rounded-lg p-3 font-mono text-body-sm"
+              />
+            </div>
+            {preview && (
+              <div
+                className="prose-page min-h-64 rounded-lg border border-border bg-bg p-4"
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(draftBody) }}
               />
             )}
             <p className="text-label-sm text-fg-muted">
