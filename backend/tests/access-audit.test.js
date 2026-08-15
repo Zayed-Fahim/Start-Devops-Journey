@@ -135,7 +135,12 @@ async function auditRole(role) {
     const body = mutating ? { title: 'audit probe', body: 'audit probe' } : undefined;
     const res = await client.api(method, path, body);
     const expected = allowed ? 200 : 403;
-    note(role, `${method} ${path.split('?')[0]}`, res.status === expected, `got ${res.status}, expected ${expected}`);
+    note(
+      role,
+      `${method} ${path.split('?')[0]}`,
+      res.status === expected,
+      `got ${res.status}, expected ${expected}`,
+    );
   }
 }
 
@@ -150,12 +155,21 @@ async function main() {
     const gated = res.status >= 300 && res.status < 400;
     note('ANON', `page ${path}`, gated, gated ? 'redirects to login' : `status ${res.status}`);
   }
-  for (const [, path] of [['GET', '/api/users'], ['GET', '/api/notifications'], ['GET', '/api/documents/docs']]) {
+  for (const [, path] of [
+    ['GET', '/api/users'],
+    ['GET', '/api/notifications'],
+    ['GET', '/api/documents/docs'],
+  ]) {
     const res = await anon.api('GET', path);
     note('ANON', `GET ${path}`, res.status === 401, `got ${res.status}`);
   }
   const missing = await anon.web('/definitely-missing');
-  note('ANON', 'unknown route', missing.status === 404 || (missing.status >= 300 && missing.status < 400), `status ${missing.status}`);
+  note(
+    'ANON',
+    'unknown route',
+    missing.status === 404 || (missing.status >= 300 && missing.status < 400),
+    `status ${missing.status}`,
+  );
 
   let area = '';
   rows.forEach((row) => {

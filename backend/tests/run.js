@@ -49,7 +49,9 @@ const waitForBudget = async () => {
   }
   if (budget.remaining >= HEADROOM) return;
   const seconds = Math.max(1, budget.reset + 1);
-  console.log(`\n     ${budget.remaining} requests left in the window, waiting ${seconds}s for it to reset`);
+  console.log(
+    `\n     ${budget.remaining} requests left in the window, waiting ${seconds}s for it to reset`,
+  );
   await wait(seconds * 1000);
 };
 

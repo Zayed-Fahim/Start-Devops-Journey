@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /**
@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
    * (Editing the Dockerfile is your call — this config just makes the option
    * available.)
    */
-  output: "standalone",
+  output: 'standalone',
 
   // Fail the production build if a type error slipped through, rather than
   // shipping it. These are the defaults; stated explicitly so nobody
