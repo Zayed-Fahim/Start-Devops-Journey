@@ -1,6 +1,6 @@
 const { milliseconds } = require('date-fns');
 const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
+const { hashPassword, verifyPassword, equaliseTiming } = require('../lib/password');
 const prisma = require('../lib/prisma');
 const env = require('../lib/env');
 const { HttpError, conflict } = require('../lib/httpError');
@@ -32,8 +32,6 @@ const PUBLIC_USER_SELECT = Object.freeze({
 
 const invalidCredentials = () =>
   new HttpError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
-
-const DUMMY_HASH = bcrypt.hashSync('unused-placeholder-for-timing-equalisation', 10);
 
 const DEFAULT_ROLE_NAME = 'USER';
 
@@ -74,7 +72,7 @@ const register = async ({ name, email, password }, context) => {
     data: {
       name,
       email,
-      password: await bcrypt.hash(password, env.BCRYPT_ROUNDS),
+      password: await hashPassword(password),
       status: 'ACTIVE',
       roleId: defaultRole?.id ?? null,
     },
@@ -100,7 +98,7 @@ const login = async ({ email, password }, context) => {
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
-    await bcrypt.compare(password, DUMMY_HASH);
+    await equaliseTiming(password);
     throw invalidCredentials();
   }
 
@@ -112,7 +110,7 @@ const login = async ({ email, password }, context) => {
     );
   }
 
-  const passwordMatches = await bcrypt.compare(password, user.password);
+  const { matches: passwordMatches, needsRehash } = await verifyPassword(user.password, password);
 
   if (!passwordMatches) {
     const failedLoginCount = user.failedLoginCount + 1;
@@ -150,7 +148,15 @@ const login = async ({ email, password }, context) => {
 
   const updated = await prisma.user.update({
     where: { id: user.id },
-    data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
+    data: {
+      failedLoginCount: 0,
+      lockedUntil: null,
+      lastLoginAt: new Date(),
+      // Upgrades a surviving bcrypt digest, or a weaker argon2 one, in the same
+      // write that clears the failure counter. Costs one extra hash on the
+      // sign-in that migrates the account and nothing on every one after it.
+      ...(needsRehash ? { password: await hashPassword(password) } : {}),
+    },
     select: PUBLIC_USER_SELECT,
   });
 

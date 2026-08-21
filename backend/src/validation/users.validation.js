@@ -18,10 +18,7 @@ const emailField = z
 const passwordField = z
   .string()
   .min(6, 'Password must be at least 6 characters')
-  .max(32, 'Password must be at most 32 characters')
-  .refine((value) => Buffer.byteLength(value, 'utf8') <= 72, {
-    message: 'Password must be at most 72 bytes',
-  });
+  .max(32, 'Password must be at most 32 characters');
 const userFields = {
   name: nameField,
   email: emailField,

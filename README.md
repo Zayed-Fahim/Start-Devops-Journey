@@ -35,7 +35,7 @@ Create `backend/.env` (see [Environment variables](#environment-variables)) and
 `frontend/.env.local`, then:
 
 ```bash
-pnpm --dir backend run db:migrate && pnpm --dir backend run seed
+pnpm --dir backend run db:migrate
 ```
 
 Two terminals:
@@ -50,16 +50,25 @@ pnpm --dir frontend run dev
 
 Open **http://localhost:3000**. Backend is on **:5000**.
 
-### Seeded accounts
+### Your first account
 
-Every seeded user has the password **`Password123!`**.
+There is no seeder. The database starts with the role and permission catalogue that the
+migrations insert, and no users at all — so nothing creates an account for you and
+nothing writes sample data into a database you might later point at something real.
 
-| Email                         | Role               | Use for                          |
-| ----------------------------- | ------------------ | -------------------------------- |
-| `ada.lovelace@example.com`    | ADMIN              | full access                      |
-| `grace.hopper@example.com`    | ADMIN              | second admin                     |
-| `alan.turing@example.com`     | ADMIN but INACTIVE | login correctly returns 403      |
-| `tim.berners-lee@example.com` | USER               | read-only; admin controls hidden |
+Set both of these in `backend/.env` and the account is created on the next boot:
+
+```
+SUPER_ADMIN_EMAIL=you@example.com
+SUPER_ADMIN_PASSWORD=<8-72 characters>
+```
+
+It is created only if the email is not already taken, so restarting is harmless. It is
+also the one account `db:reset` and `db:clear --users` refuse to delete. Leave either
+value empty and the bootstrap is skipped entirely.
+
+Everyone after that registers through the UI, or is created by an admin from the users
+page.
 
 ---
 
@@ -83,8 +92,25 @@ Every seeded user has the password **`Password123!`**.
 | `JWT_REFRESH_SECRET`       | 48+ random bytes                           | must differ from the access secret               |
 | `ACCESS_TOKEN_TTL`         | `15m`                                      |                                                  |
 | `REFRESH_TOKEN_TTL_DAYS`   | `7`                                        |                                                  |
-| `BCRYPT_ROUNDS`            | `12`                                       | each +1 doubles hashing time                     |
+| `REFRESH_GRACE_SECONDS`    | `15`                                       | replay window treated as a tab race, not theft   |
+| `SESSION_MAX_PER_USER`     | `10`                                       | oldest sessions revoked past the cap             |
+| `REFRESH_RETENTION_DAYS`   | `30`                                       | how long revoked rows survive `prune:sessions`   |
+| `ARGON2_MEMORY_COST`       | `19456`                                    | KiB per hash — the expensive knob                |
+| `ARGON2_TIME_COST`         | `2`                                        | passes over memory                               |
+| `ARGON2_PARALLELISM`       | `1`                                        | lanes                                            |
+| `MAX_FAILED_LOGINS`        | `5`                                        | consecutive failures before lockout              |
+| `LOCKOUT_MINUTES`          | `15`                                       | lockout duration                                 |
+| `LOG_LEVEL`                | `info`                                     | pino level; `silent` turns logging off           |
+| `DB_POOL_MAX`              | `10`                                       | node-postgres pool size for the driver adapter   |
 | `CORS_ORIGIN`              | `http://localhost:3000`                    | comma-separated for several                      |
+| `SUPER_ADMIN_EMAIL`        | —                                          | blank disables the bootstrap                     |
+| `SUPER_ADMIN_PASSWORD`     | —                                          | 8-72 characters                                  |
+| `SUPER_ADMIN_NAME`         | `Super Admin`                              |                                                  |
+| `SUPER_ADMIN_ROLE`         | `ADMIN`                                    | looked up in the `roles` table                   |
+| `HEALTHCHECK_TIMEOUT_MS`   | `3000`                                     | not zod-validated; used by `healthcheck.js`      |
+
+Every key is listed in `.env.example` with no comments; a bare `KEY=` is read as unset,
+so blank lines fall back to the defaults above rather than failing validation.
 
 `src/lib/env.js` validates all of this with zod at boot and **exits** if anything is
 missing — a container that refuses to start is a visible problem; one that starts and
@@ -139,11 +165,14 @@ from a Client Component fails the _build_ rather than leaking a hostname.
 | Command                                       | Does                                                       |
 | --------------------------------------------- | ---------------------------------------------------------- |
 | `pnpm run dev`                                | generate client → apply migrations → nodemon               |
-| `pnpm run seed`                               | insert/refresh 25 sample users (idempotent, never deletes) |
 | `pnpm run db:migrate`                         | apply committed migrations                                 |
 | `pnpm run db:migrate:dev --name what_changed` | author a new migration                                     |
 | `pnpm run db:status`                          | what has and has not been applied                          |
 | `pnpm run db:studio`                          | Prisma's database browser                                  |
+| `pnpm run db:reset`                           | delete transactional rows, keeping the catalogue           |
+| `pnpm run db:clear -- --list`                 | row counts per table; `--table=`, `--users`, `--dry-run`   |
+| `pnpm run prune:sessions`                     | enforce the session cap and delete expired refresh rows    |
+| `pnpm test`                                   | integration suites against a running stack                 |
 | `pnpm run lint`                               | eslint (airbnb)                                            |
 
 All `db:*` scripts route through `scripts/with-db-url.js`, which injects the computed
@@ -233,12 +262,16 @@ Built by hand rather than delegated, because the mechanics are the point.
   old; replaying a revoked token revokes the whole family, because two parties holding
   one secret means it was stolen
 - **CSRF**: double-submit token, cookie vs `X-CSRF-Token` header, `timingSafeEqual`
-- **No user enumeration**: a bcrypt compare runs even for unknown emails, so response
-  time does not reveal which addresses exist
+- **No user enumeration**: an argon2 verify against a dummy hash runs even for unknown
+  emails, so response time does not reveal which addresses exist
 - **Lockout**: 5 failed logins → 15 minutes
 - **Rate limits**: 10 logins / 15 min, 5 registrations / hour, 300 requests / min
-- **Passwords**: bcrypt cost 12, 6–32 characters (self-registration also requires upper,
-  lower and a digit), byte-length capped at bcrypt's 72-byte truncation point
+- **Passwords**: Argon2id at the OWASP floor — 19 MiB, two passes, one lane — 6–32
+  characters (self-registration also requires upper, lower and a digit). Memory is the
+  point: bcrypt needs almost none and so parallelises cheaply on a GPU, while argon2id
+  makes an attacker buy RAM per guess. Raising `ARGON2_*` migrates accounts as they sign
+  in, because a correct password whose digest is below the current parameters is
+  rehashed on the spot
 - **RLS enabled on every table** — see below
 - helmet, and CORS as an origin allowlist with credentials (never `*`)
 
@@ -246,7 +279,7 @@ Built by hand rather than delegated, because the mechanics are the point.
 
 Supabase serves PostgREST over the same database using your publishable (anon) key. With
 RLS disabled, that key reads and writes `users` and `refresh_tokens` **directly** —
-bcrypt hashes and refresh digests included — bypassing the API, its CSRF check and its
+password hashes and refresh digests included — bypassing the API, its CSRF check and its
 role gate entirely.
 
 RLS is enabled by migration `20260814190000_enable_row_level_security`, with **no

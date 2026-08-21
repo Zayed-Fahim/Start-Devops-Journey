@@ -1,4 +1,4 @@
-const bcrypt = require('bcryptjs');
+const { hashPassword } = require('../lib/password');
 const prisma = require('../lib/prisma');
 const env = require('../lib/env');
 const logger = require('../lib/logger');
@@ -30,7 +30,7 @@ const ensureSuperAdmin = async () => {
     );
   }
 
-  const hashed = await bcrypt.hash(password, env.BCRYPT_ROUNDS);
+  const hashed = await hashPassword(password);
 
   try {
     const created = await prisma.user.create({

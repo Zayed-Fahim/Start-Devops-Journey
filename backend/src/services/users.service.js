@@ -1,7 +1,6 @@
-const bcrypt = require('bcryptjs');
 const { Prisma } = require('@prisma/client');
 const prisma = require('../lib/prisma');
-const env = require('../lib/env');
+const { hashPassword } = require('../lib/password');
 const { badRequest } = require('../lib/httpError');
 const { STATUSES } = require('../validation/users.validation');
 
@@ -21,8 +20,6 @@ const toPublicUser = (user) => {
   const { roleRef, ...rest } = user;
   return { ...rest, role: roleRef?.name ?? null };
 };
-
-const hashPassword = (plain) => bcrypt.hash(plain, env.BCRYPT_ROUNDS);
 
 const listRoleNames = async () => {
   const roles = await prisma.accessRole.findMany({

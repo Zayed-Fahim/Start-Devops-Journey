@@ -1,6 +1,5 @@
-const bcrypt = require('bcryptjs');
+const { hashPassword, verifyPassword } = require('../lib/password');
 const prisma = require('../lib/prisma');
-const env = require('../lib/env');
 const { HttpError } = require('../lib/httpError');
 const { hashRefreshToken } = require('../lib/tokens');
 const { describeUserAgent } = require('../lib/userAgent');
@@ -127,7 +126,7 @@ const changePassword = async (userId, { currentPassword, newPassword }, currentT
 
   if (!user) throw new HttpError(401, 'NOT_AUTHENTICATED', 'Authentication required');
 
-  const matches = await bcrypt.compare(currentPassword, user.password);
+  const { matches } = await verifyPassword(user.password, currentPassword);
 
   if (!matches) {
     await audit.record({
@@ -146,7 +145,7 @@ const changePassword = async (userId, { currentPassword, newPassword }, currentT
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { password: await bcrypt.hash(newPassword, env.BCRYPT_ROUNDS) },
+    data: { password: await hashPassword(newPassword) },
   });
 
   const { revoked } = await revokeOtherSessions(user.id, currentToken, context);

@@ -20,7 +20,9 @@ const envSchema = z.object({
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:3000'),
-  BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
+  ARGON2_MEMORY_COST: z.coerce.number().int().min(8192).max(1048576).default(19456),
+  ARGON2_TIME_COST: z.coerce.number().int().min(1).max(10).default(2),
+  ARGON2_PARALLELISM: z.coerce.number().int().min(1).max(16).default(1),
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
   ACCESS_TOKEN_TTL: z.string().default('15m'),
@@ -57,7 +59,20 @@ const buildDatabaseUrls = ({ DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD }) 
   return { pooled, direct };
 };
 
-const parsed = envSchema.safeParse(process.env);
+/**
+ * dotenv turns a bare `KEY=` into an empty string, and zod treats that as a
+ * present-but-invalid value: `.default()` never fires and `.optional()` rejects
+ * it, so a blank line in .env is a boot failure rather than "unset".
+ *
+ * Every .env file in this repo lists every key, including the ones meant to be
+ * left empty, so blanks are stripped here and the schema sees `undefined` — the
+ * defaults apply and genuinely required keys still fail with "Required".
+ */
+const withoutBlanks = Object.fromEntries(
+  Object.entries(process.env).filter(([, value]) => value !== ''),
+);
+
+const parsed = envSchema.safeParse(withoutBlanks);
 
 if (!parsed.success) {
   console.error('Invalid environment configuration:\n');
